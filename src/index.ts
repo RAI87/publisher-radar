@@ -83,6 +83,15 @@ app.post("/api/auth/logout", (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete("/api/auth/me", (req, res) => {
+  const token = parseCookies(req.headers?.cookie)[COOKIE];
+  const me = token ? storage.me(token) : null;
+  if (!me) return res.status(401).json({ error: "nao logado" });
+  storage.deleteUser(me.id);
+  clearSession(res);
+  res.json({ ok: true });
+});
+
 app.get("/api/auth/me", (req, res) => {
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = token ? storage.me(token) : null;
@@ -409,8 +418,11 @@ app.get("/", (req: any, res: any) => {
     <input id="lbl" placeholder="Rotulo (ex 99Vidas)" style="width:190px"/>
     <button class="btn" onclick="addGame(this)">+ Adicionar</button>
     <button class="btn ghost" onclick="csv()">Exportar CSV</button>
+    <button class="btn ghost" onclick="diag(this)">Diagnostico</button>
   </div>
   <div class="legend"><span>${svg.check} Dados de hoje via API oficial</span><span>${svg.bell} Critico = review-bomb</span><span>${svg.tag} Atencao = preco/rating</span><span id="showline"></span></div>
+  <div id="errbar" style="display:none;background:#3a1414;border:3px solid #f87171;color:#fecaca;padding:10px 14px;margin:10px 0;font-size:12px"></div>
+  <div id="diagbox" style="display:none;background:#0c1a12;border:3px solid #4ade80;color:#d9f99d;padding:10px 14px;margin:10px 0;font-size:12px;white-space:pre-wrap"></div>
   <div class="grid" id="grid" style="margin-top:12px">${games.length ? games.map((g, i) => cardHtml(uid, g, i)).join("") : `<div class="card"><div class="pad"><b>Nenhum jogo monitorado ainda.</b><p style="color:#8f98a0">Carregue os 3 jogos demo (99Vidas, Atomic Picnic, Sportia) ou adicione pelo AppID acima.</p><button class="btn primary" onclick="seedDemo(this)">CARREGAR 3 JOGOS DEMO</button></div></div>`}</div>
   <div class="sectionhead rv"><h2>Comparativo do portfolio</h2><span>preco BR, desconto, base de reviews, aprovacao e velocity de 7 dias</span></div>
   <table><tr><th>Capsule</th><th>Jogo</th><th>Preco</th><th>Desc.</th><th>Reviews</th><th>Aprovacao</th><th>Velocity</th></tr>${rows}</table>
@@ -448,8 +460,15 @@ app.get("/", (req: any, res: any) => {
   <tr><td>Reviews e aprovacao</td><td>appreviews + query_summary</td><td>+5 reviews no ciclo ou variacao de 2pp com 20+ reviews</td></tr>
   <tr><td>Review-bomb</td><td>ultimas 20 reviews, timestamp 24h</td><td>3+ negativas em 24h</td></tr>
   <tr><td>Velocity</td><td>historico local de 8 coletas</td><td>media diaria, sem projecao inventada</td></tr></table>
-  <div class="footer"><span>Publisher Radar · build 0.2.0</span><span>Imagens e precos: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a></span></div>
+  <div class="footer"><span>Publisher Radar · build 0.4.0</span><span>Imagens e precos: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a> · <a href="#" onclick="delme();return false">excluir minha conta</a></span></div>
   <script>
+  window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(b){b.style.display='block';b.textContent='ERRO NA PAGINA: '+(e.message||'desconhecido')+' — tire um print e mande ao suporte.';}});
+  async function diag(el){var box=document.getElementById('diagbox');box.style.display='block';box.textContent='Testando...';var L=[];
+    L.push('cookies: '+(document.cookie?'presentes':'AUSENTES (login nao vai grudar)')+', fetch: '+(typeof fetch==='function'?'ok':'AUSENTE')+', Chart: '+(typeof Chart==='function'?'ok':'falhou (graficos quebrados, botoes ok)'));
+    try{var m=await fetch('/api/auth/me').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('sessao: HTTP '+m.s+' '+(m.j.email||m.j.error||''));}catch(e){L.push('sessao: FALHA DE REDE '+e);}
+    try{var g=await fetch('/api/games').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('jogos: HTTP '+g.s+' total='+(Array.isArray(g.j)?g.j.length:JSON.stringify(g.j).slice(0,80)));}catch(e){L.push('jogos: FALHA DE REDE '+e);}
+    try{var t0=Date.now();var k=await fetch('/api/check/557040').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('steam: HTTP '+k.s+' em '+(Date.now()-t0)+'ms '+(k.j.name||k.j.error||''));}catch(e){L.push('steam: FALHA DE REDE '+e);}
+    box.textContent=L.join('\n');}
   function showline(){var cards=document.querySelectorAll('#grid .card');var vis=0;cards.forEach(function(c){if(c.style.display!=='none')vis++;});var el=document.getElementById('showline');if(el)el.textContent='Mostrando '+vis+' de '+cards.length+' jogos';}
   function filter(m,el){var bar=document.getElementById('filterbar');bar.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});el.classList.add('on');var g=document.getElementById('grid');g.classList.add('fading');
     setTimeout(function(){document.querySelectorAll('#grid .card').forEach(function(c){var mine=c.getAttribute('data-mine')==='1';c.style.display=(m===0||(m===1&&mine)||(m===2&&!mine))?'':'none';});g.classList.remove('fading');showline();},160);}
@@ -464,6 +483,7 @@ app.get("/", (req: any, res: any) => {
   async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'});if(await needLogin(r))return;const j=await r.json().catch(()=>null);alert(j&&j.result?j.result.join('\n'):'Coleta concluida');}catch(e){alert('Falha de rede. Tente de novo.');}location.reload();}
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
+  async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
   async function plan(){const r=await fetch('/api/billing').then(x=>x.json());const el=document.getElementById('planline');if(el)el.textContent='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';alert(JSON.stringify(r));}
   async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());alert((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
   async function saveKey(){const v=document.getElementById('swkey').value.trim();await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});alert('Key salva. Use Testar wishlist real.');}

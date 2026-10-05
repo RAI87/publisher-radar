@@ -136,6 +136,13 @@ export const storage = {
     db.sessions = db.sessions.filter((s) => s.token !== token);
     save(db);
   },
+  deleteUser(userId: string): void {
+    const db = load();
+    db.users = db.users.filter((u) => u.id !== userId);
+    delete db.data[userId];
+    db.sessions = db.sessions.filter((s) => s.userId !== userId);
+    save(db);
+  },
   me(token: string): (User & { trialLeft: number }) | null {
     const db = load();
     const s = db.sessions.find((x) => x.token === token);
