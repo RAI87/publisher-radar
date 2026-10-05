@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { storage } from "./storage.js";
 import { parseCookies } from "./auth.js";
 import { fetchSnapshot, fetchRecentReviews, scoreForecast, draftReply, parseAppId } from "./steam.js";
+import { pixCode, pixAmount, pixKey } from "./pix.js";
 import { sendDiscord } from "./discord.js";
 
 const app = express();
@@ -96,7 +97,11 @@ app.get("/api/auth/me", (req, res) => {
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = token ? storage.me(token) : null;
   if (!me) return res.status(401).json({ error: "nao logado" });
-  res.json({ email: me.email, plan: me.plan, trialLeft: me.trialLeft });
+  res.json({ email: me.email, plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true });
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, build: "0.5.0", now: new Date().toISOString(), dataDir: process.env.DATA_DIR || "(raiz do app)", steam: "api publica (sem key = proxy por reviews)" });
 });
 
 app.get("/api/billing", (req, res) => {
@@ -104,19 +109,38 @@ app.get("/api/billing", (req, res) => {
   if (!uid) return res.status(401).json({ error: "nao logado" });
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = storage.me(token!)!;
-  res.json({ plan: me.plan, trialLeft: me.trialLeft, price: "R$ 99/mes", key: "pagamento via Pix/cartao — fale com o time para ativar" });
+  res.json({ plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true, price: "R$ 99/mes" });
 });
 
 app.post("/api/billing/checkout", (req, res) => {
   const uid = uidOf(req);
   if (!uid) return res.status(401).json({ error: "nao logado" });
-  res.json({ ok: true, next: "Piloto: sem cobranca por 7 dias. Para ativar o Pro (R$ 99/mes), pague via Pix e envie o comprovante para contato@publisherradar.com.br com seu email de login.", pixKey: "5711321a-8781-4817-892d-17029e88ff1c" });
+  res.json({ ok: true, amount: pixAmount(), pixKey: pixKey(), pixCode: pixCode().code, next: "Pague no app do banco (Pix copia e cola) e clique em JA PAGUEI." });
+});
+
+app.get("/api/billing/pix", (req, res) => {
+  const uid = uidOf(req);
+  if (!uid) return res.status(401).json({ error: "nao logado" });
+  const p = pixCode();
+  res.json({ amount: pixAmount(), code: p.code, name: p.name });
+});
+
+app.post("/api/billing/paid", (req, res) => {
+  const uid = uidOf(req);
+  if (!uid) return res.status(401).json({ error: "nao logado" });
+  storage.markPaid(uid);
+  res.json({ ok: true, status: "pagamento em conferencia — liberamos o Pro em ate 1 dia util" });
 });
 
 app.post("/api/billing/activate", (req, res) => {
   if ((req.body?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey invalida" });
   const ok = storage.setPlan(String(req.body?.email ?? ""), "pro");
   res.json({ ok });
+});
+
+app.get("/api/billing/pending", (req, res) => {
+  if (String(req.query?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey invalida" });
+  res.json(storage.pendingList());
 });
 
 app.get("/api/steamworks", (req, res) => {
@@ -434,11 +458,17 @@ app.get("/", (req: any, res: any) => {
   <div class="sectionhead rv"><h2>Conta e cobranca</h2><span id="planline">plano e trial</span></div>
   <div class="toolbar">
     <button class="btn ghost" onclick="plan()">Ver meu plano</button>
-    <button class="btn ghost" onclick="checkout()">Ativar Pro (Pix)</button>
+    <button class="btn primary" onclick="showPix(this)">ATIVAR PRO · R$ 99 Pix</button>
     <input id="swkey" placeholder="Steamworks Web API Key (grupo financeiro, opcional)" style="min-width:300px;flex:1"/>
     <button class="btn ghost" onclick="saveKey()">Salvar key</button>
     <button class="btn ghost" onclick="checkWish()">Testar wishlist real</button>
   </div>
+  <div id="pixbox" style="display:none" class="card"><div class="pad"><b>Pix R$ 99,00 — 30 dias de Pro</b>
+  <p style="color:#8f98a0;font-size:12px">Pague no app do banco com o codigo copia e cola e clique em JA PAGUEI. Liberamos em ate 1 dia util.</p>
+  <textarea id="pixcode" rows="3" readonly style="width:100%;background:#05080f;color:#d9f99d;border:3px solid #2a3a55;font-size:11px"></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost small" onclick="copyPix()">Copiar codigo</button>
+  <button class="btn primary small" onclick="markPaid(this)">JA PAGUEI</button></div>
+  <p id="pixstatus" style="font-size:12px"></p></div></div>
   <div class="sectionhead rv"><h2>Relatorio e integracao</h2><span>o que o publisher encaminha no Slack</span></div>
   <div class="toolbar">
     <button class="btn ghost" onclick="window.open('/api/report.md','_blank')">Relatorio semanal (Markdown)</button>
@@ -460,7 +490,7 @@ app.get("/", (req: any, res: any) => {
   <tr><td>Reviews e aprovacao</td><td>appreviews + query_summary</td><td>+5 reviews no ciclo ou variacao de 2pp com 20+ reviews</td></tr>
   <tr><td>Review-bomb</td><td>ultimas 20 reviews, timestamp 24h</td><td>3+ negativas em 24h</td></tr>
   <tr><td>Velocity</td><td>historico local de 8 coletas</td><td>media diaria, sem projecao inventada</td></tr></table>
-  <div class="footer"><span>Publisher Radar · build 0.4.0</span><span>Imagens e precos: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a> · <a href="#" onclick="delme();return false">excluir minha conta</a></span></div>
+  <div class="footer"><span>Publisher Radar · build 0.5.0</span><span>Imagens e precos: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a> · <a href="#" onclick="delme();return false">excluir minha conta</a></span></div>
   <script>
   window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(b){b.style.display='block';b.textContent='ERRO NA PAGINA: '+(e.message||'desconhecido')+' — tire um print e mande ao suporte.';}});
   async function diag(el){var box=document.getElementById('diagbox');box.style.display='block';box.textContent='Testando...';var L=[];
@@ -484,8 +514,11 @@ app.get("/", (req: any, res: any) => {
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
-  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());const el=document.getElementById('planline');if(el)el.textContent='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';alert(JSON.stringify(r));}
+  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){alert(r.error);return;}const el=document.getElementById('planline');var t='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';if(r.pendingPro)t+=' · PAGAMENTO EM CONFERENCIA';if(el)el.textContent=t;alert(t);}
   async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());alert((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
+  async function showPix(el){var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView();var ta=document.getElementById('pixcode');ta.value='Gerando codigo...';try{var r=await fetch('/api/billing/pix').then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · vale por 30 dias de Pro.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
+  function copyPix(){var ta=document.getElementById('pixcode');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}alert('Codigo Pix copiado.');}
+  async function markPaid(el){el.disabled=true;el.textContent='Enviando...';var r=await fetch('/api/billing/paid',{method:'POST'}).then(x=>x.json());document.getElementById('pixstatus').textContent=r.status||'ok';el.textContent='JA PAGUEI';el.disabled=false;plan();}
   async function saveKey(){const v=document.getElementById('swkey').value.trim();await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});alert('Key salva. Use Testar wishlist real.');}
   async function checkWish(){const g=await fetch('/api/games').then(x=>x.json());const appId=(g[0]&&g[0].appId)||'557040';const r=await fetch('/api/wishlist/'+appId).then(x=>x.json());alert(r.configured===false?'Sem key: usando reviews como proxy.':JSON.stringify(r).slice(0,300));}
   async function showAudit(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Analisando pagina...';if(el)el.disabled=true;try{const r=await fetch('/api/audit/'+appId).then(x=>x.json());

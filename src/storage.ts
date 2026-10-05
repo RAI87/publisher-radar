@@ -25,6 +25,7 @@ export interface User {
   passHash: string;
   salt: string;
   plan: "trial" | "pro";
+  pendingPro: boolean;
   trialEnds: string;
   createdAt: string;
 }
@@ -66,6 +67,7 @@ function load(): DB {
       passHash: "",
       salt: "",
       plan: "trial",
+      pendingPro: false,
       trialEnds: new Date(Date.now() + 7 * 86400000).toISOString(),
       createdAt: new Date().toISOString()
     });
@@ -109,6 +111,7 @@ export const storage = {
       passHash: hash,
       salt,
       plan: "trial",
+      pendingPro: false,
       trialEnds: new Date(Date.now() + 7 * 86400000).toISOString(),
       createdAt: new Date().toISOString()
     };
@@ -149,6 +152,7 @@ export const storage = {
     if (!s) return null;
     const u = db.users.find((x) => x.id === s.userId);
     if (!u) return null;
+    if (u.pendingPro === undefined) u.pendingPro = false;
     return { ...u, trialLeft: u.plan === "pro" ? -1 : trialLeft(u) };
   },
   allUserIds(): string[] {
@@ -162,8 +166,20 @@ export const storage = {
     const u = db.users.find((x) => x.email === email.trim().toLowerCase());
     if (!u) return false;
     u.plan = plan;
+    u.pendingPro = false;
     save(db);
     return true;
+  },
+  markPaid(userId: string): void {
+    const db = load();
+    const u = db.users.find((x) => x.id === userId);
+    if (!u) return;
+    u.pendingPro = true;
+    save(db);
+  },
+  pendingList(): { email: string; since: string }[] {
+    const db = load();
+    return db.users.filter((u) => u.pendingPro && u.plan !== "pro").map((u) => ({ email: u.email, since: u.createdAt }));
   },
   listGames(userId: string): TrackedGame[] {
     return load().data[userId]?.games ?? [];
