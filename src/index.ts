@@ -380,9 +380,10 @@ function cardHtml(u: string, g: any, i: number): string {
       <span>${s?.totalReviews ?? 0} reviews</span><span>${s?.ccu ?? 0} online</span><span>Vel. ${vel}/dia</span></div>
       <div class="meta"><span>Aprovacao ${pos}%</span></div>
       <div class="bar"><i style="width:${pos}%"></i></div>
-      <canvas id="${id}" height="64"></canvas>
-      <div class="meta" style="margin-top:6px"><span>Historico de preco (30d, R$)</span></div>
-      <canvas id="${idp}" height="38"></canvas>
+      <div class="meta"><span>Reviews · 30 dias</span><span style="margin-left:auto">Vel. ${vel}/dia</span></div>
+      <div style="position:relative;height:96px">${hist.length > 1 ? `<canvas id="${id}"></canvas>` : `<div style="height:96px;display:flex;align-items:center;color:#5b6b85;font-size:12px">Sem historico — clique em Recheck ou Coletar agora.</div>`}</div>
+      <div class="meta" style="margin-top:6px"><span>Preco BRL · 30 dias</span>${s?.discountPct ? `<span style="color:#fbbf24">-${s.discountPct}% agora</span>` : ""}</div>
+      <div style="position:relative;height:52px">${hist.length > 1 ? `<canvas id="${idp}"></canvas>` : `<div style="height:52px"></div>`}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <a href="https://store.steampowered.com/app/${g.appId}" target="_blank" rel="noopener">Abrir na Steam ${svg.ext}</a>
         <span style="display:flex;gap:6px"><button class="btn ghost small" onclick="recheck('${g.appId}',this)">Recheck</button>
@@ -395,8 +396,10 @@ function cardHtml(u: string, g: any, i: number): string {
       </div>
       <div id="x-${g.appId}" style="margin-top:8px;font-size:12px;color:#c7d5e0"></div>
     </div>
-    <script>new Chart(document.getElementById("${id}"),{type:"line",data:{labels:[${labels}],datasets:[{label:"reviews",data:[${rev}],borderColor:"#66c0f4",backgroundColor:"rgba(102,192,244,.14)",fill:true,tension:.35,pointRadius:0,borderWidth:2}]},options:{animation:{duration:800,easing:"easeOutQuart"},plugins:{legend:{display:false},tooltip:{callbacks:{title:(i)=>"Dia "+i[0].label}}},scales:{x:{display:false},y:{grid:{color:"#1e2632"},ticks:{color:"#8f98a0",maxTicksLimit:4}}}}});
-    new Chart(document.getElementById("${idp}"),{type:"bar",data:{labels:[${labels}],datasets:[{label:"R$",data:[${prices}],backgroundColor:"#fbbf24"}]},options:{plugins:{legend:{display:false}},scales:{x:{display:false},y:{grid:{color:"#1e2632"},ticks:{color:"#8f98a0",maxTicksLimit:3}}}}});</script>
+    <script>(function(){var a=document.getElementById("${id}"),b=document.getElementById("${idp}");if(!a||!b)return;if(typeof Chart==="undefined"){a.outerHTML='<div style="height:96px;display:flex;align-items:center;color:#fca5a5;font-size:12px">Grafico indisponivel (CDN bloqueada). Os numeros acima estao atualizados.</div>';return;}
+    var base={responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:"easeOutQuart"},plugins:{legend:{display:false}}};
+    new Chart(a,{type:"line",data:{labels:[${labels}],datasets:[{label:"reviews",data:[${rev}],borderColor:"#66c0f4",backgroundColor:"rgba(102,192,244,.14)",fill:true,tension:.35,pointRadius:0,borderWidth:2}]},options:Object.assign({},base,{plugins:{legend:{display:false},tooltip:{callbacks:{title:function(i){return "Dia "+i[0].label}}},scales:{x:{display:false},y:{grid:{color:"#1e2632"},ticks:{color:"#8f98a0",maxTicksLimit:4,precision:0}}}})});
+    new Chart(b,{type:"line",data:{labels:[${labels}],datasets:[{label:"R$",data:[${prices}],borderColor:"#fbbf24",backgroundColor:"rgba(251,191,36,.12)",fill:true,stepped:true,pointRadius:0,borderWidth:2}]},options:Object.assign({},base,{plugins:{legend:{display:false},tooltip:{callbacks:{label:function(i){return "R$ "+i.parsed.y}}}},scales:{x:{display:false},y:{grid:{color:"#1e2632"},ticks:{color:"#8f98a0",maxTicksLimit:3,callback:function(v){return "R$"+v}}}}})});})();</script>
   </div>`;
 }
 
