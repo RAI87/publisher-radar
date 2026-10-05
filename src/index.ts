@@ -141,18 +141,35 @@ const svg = {
 const pxHead = `<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">`;
 const pxBody = `<canvas id="pxbg"></canvas><div class="scan"></div><div class="vig"></div>`;
 const pxScript = `<script>
-(function(){var c=document.getElementById('pxbg');if(!c)return;var x=c.getContext('2d');var W,H,P=[];
+(function(){var c=document.getElementById('pxbg');if(!c)return;var x=c.getContext('2d');var W,H;
 function rs(){W=c.width=innerWidth;H=c.height=innerHeight;}
 rs();addEventListener('resize',rs);
-var cols=['#4ade80','#66c0f4','#fbbf24','#e879f9','#33415e'];
-for(var i=0;i<90;i++)P.push({x:Math.random()*2000,y:Math.random()*1200,s:Math.random()<.85?2:3,v:.08+Math.random()*.35,o:.15+Math.random()*.5,cl:cols[i%cols.length],tw:Math.random()*6.28});
-var t=0;
-(function loop(){t+=.016;x.clearRect(0,0,W,H);
-x.strokeStyle='rgba(60,80,120,.10)';x.lineWidth=1;
-for(var gx=0;gx<W;gx+=48){x.beginPath();x.moveTo(gx,0);x.lineTo(gx,H);x.stroke();}
-for(var gy=0;gy<H;gy+=48){x.beginPath();x.moveTo(0,gy);x.lineTo(W,gy);x.stroke();}
-for(var k=0;k<P.length;k++){var p=P[k];p.y-=p.v;p.x+=Math.sin(t*.5+p.tw)*.08;if(p.y<-6){p.y=H+6;p.x=Math.random()*W;}
-var a=p.o*(.6+.4*Math.sin(t*2+p.tw));x.globalAlpha=Math.max(.05,a);x.fillStyle=p.cl;x.fillRect(p.x,p.y,p.s,p.s);}
+var cols=['#4ade80','#66c0f4','#fbbf24','#e879f9','#3b82f6'];
+var P=[],S=[],IN=[];
+for(var i=0;i<70;i++)P.push({x:Math.random()*2000,y:Math.random()*1200,s:2,v:.1+Math.random()*.3,o:.2+Math.random()*.5,cl:cols[i%cols.length],tw:Math.random()*6.28});
+for(var j=0;j<36;j++)S.push({x:Math.random()*2000,y:Math.random()*1200,s:3+Math.floor(Math.random()*3),v:.3+Math.random()*.5,o:.35+Math.random()*.45,cl:cols[(j+2)%cols.length],tw:Math.random()*6.28});
+var invader=['00100000100','00010000100','00111111100','01101110110','11111111111','10111111101','10100000101','00011011000'];
+function drawInv(ix,iy,sc,col,al){x.globalAlpha=al;x.fillStyle=col;for(var r=0;r<invader.length;r++){for(var q=0;q<invader[r].length;q++){if(invader[r][q]==='1')x.fillRect(ix+q*sc,iy+r*sc,sc,sc);}}x.globalAlpha=1;}
+for(var k=0;k<4;k++)IN.push({x:Math.random()*1600,y:Math.random()*900,vx:.12+Math.random()*.15,sc:3,cl:k%2?'#66c0f4':'#4ade80',al:.10+Math.random()*.08});
+var meteors=[];
+setInterval(function(){if(document.hidden)return;meteors.push({x:W*.2+Math.random()*W*.8,y:-10,vx:-(2+Math.random()*2),vy:2+Math.random()*2,life:1});},3800);
+var t=0,gx=0;
+(function loop(){t+=.016;gx+=.15;x.clearRect(0,0,W,H);
+x.strokeStyle='rgba(70,95,140,.13)';x.lineWidth=1;
+var off=gx%96;
+for(var X=-96+off;X<W;X+=96){x.beginPath();x.moveTo(X,0);x.lineTo(X,H);x.stroke();}
+for(var Y=0;Y<H;Y+=96){x.beginPath();x.moveTo(0,Y);x.lineTo(W,Y);x.stroke();}
+var i,p,a;
+for(i=0;i<P.length;i++){p=P[i];p.y-=p.v;if(p.y<-8){p.y=H+8;p.x=Math.random()*W;}
+a=p.o*(.55+.45*Math.sin(t*1.6+p.tw));x.globalAlpha=Math.max(.06,a);x.fillStyle=p.cl;x.fillRect(p.x,p.y,p.s,p.s);}
+for(i=0;i<S.length;i++){p=S[i];p.y-=p.v;p.x+=Math.sin(t*.6+p.tw)*.15;if(p.y<-10){p.y=H+10;p.x=Math.random()*W;}
+a=p.o*(.55+.45*Math.sin(t*2.4+p.tw));x.globalAlpha=Math.max(.08,a);x.fillStyle=p.cl;x.fillRect(p.x,p.y,p.s,p.s);
+x.globalAlpha=a*.25;x.fillRect(p.x-p.s,p.y, p.s,p.s);x.fillRect(p.x+2*p.s,p.y,p.s,p.s);}
+for(i=0;i<IN.length;i++){var n=IN[i];n.x+=n.vx;if(n.x>W+60)n.x=-80;drawInv(n.x,n.y+Math.sin(t*.8+i*2)*10,n.sc,n.cl,n.al);}
+for(i=meteors.length-1;i>=0;i--){var m=meteors[i];m.x+=m.vx;m.y+=m.vy;m.life-=.012;
+if(m.life<=0||m.y>H+20){meteors.splice(i,1);continue;}
+x.globalAlpha=Math.max(0,m.life)*.8;x.fillStyle='#4ade80';
+for(var sgm=0;sgm<7;sgm++){x.globalAlpha=Math.max(0,m.life)*(.8-sgm*.11);x.fillRect(m.x-sgm*m.vx*2,m.y-sgm*m.vy*2,3,3);}}
 x.globalAlpha=1;requestAnimationFrame(loop);})();
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.12});
 document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
@@ -313,13 +330,13 @@ function cardHtml(u: string, g: any, i: number): string {
       <canvas id="${idp}" height="38"></canvas>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <a href="https://store.steampowered.com/app/${g.appId}" target="_blank" rel="noopener">Abrir na Steam ${svg.ext}</a>
-        <span style="display:flex;gap:6px"><button class="btn ghost small" onclick="recheck('${g.appId}')">Recheck</button>
-        <button class="btn ghost small" onclick="removeGame('${g.appId}')">Remover</button></span>
+        <span style="display:flex;gap:6px"><button class="btn ghost small" onclick="recheck('${g.appId}',this)">Recheck</button>
+        <button class="btn ghost small" onclick="removeGame('${g.appId}',this)">Remover</button></span>
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn ghost small" onclick="showAudit('${g.appId}')">Auditoria</button>
-        <button class="btn ghost small" onclick="showForecast('${g.appId}')">Quanto falta p/ subir nota</button>
-        <button class="btn ghost small" onclick="showReply('${g.appId}')">Rascunho de resposta</button>
+        <button class="btn ghost small" onclick="showAudit('${g.appId}',this)">Auditoria</button>
+        <button class="btn ghost small" onclick="showForecast('${g.appId}',this)">Quanto falta p/ subir nota</button>
+        <button class="btn ghost small" onclick="showReply('${g.appId}',this)">Rascunho de resposta</button>
       </div>
       <div id="x-${g.appId}" style="margin-top:8px;font-size:12px;color:#c7d5e0"></div>
     </div>
@@ -351,7 +368,7 @@ app.get("/", (req: any, res: any) => {
   <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
   <div class="wrap">
   <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · ultima sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
-  <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker()">${svg.chart} Coletar agora</button></div>
+  <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
   <div class="kpis">
     <div class="kpi rise"><b>${games.length}<span style="font-size:14px;color:#8f98a0">/30</span></b><span>Jogos monitorados</span><br/><small>limite do plano Piloto</small></div>
     <div class="kpi rise" style="animation-delay:60ms"><b>${totalReviews.toLocaleString("pt-BR")}</b><span>Reviews somados no portfolio</span><br/><small>base para velocity diaria</small></div>
@@ -415,23 +432,24 @@ app.get("/", (req: any, res: any) => {
     document.querySelectorAll('#alerts .alert').forEach(a=>{a.style.display=(k==='all'||a.dataset.k===k)?'':'none';});}
   async function addGame(){const appId=document.getElementById('appid').value.trim();const label=document.getElementById('lbl').value.trim();
     if(!appId)return alert('Digite o AppID (so numeros, ex 557040)');await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});location.reload();}
-  async function removeGame(appId){if(!confirm('Remover App '+appId+' do monitoramento?'))return;await fetch('/api/games/'+appId,{method:'DELETE'});location.reload();}
-  async function recheck(appId){const b=event.target;b.textContent='Coletando...';const r=await fetch('/api/check/'+appId);if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';alert('Falha: '+(e.error||r.status));return;}location.reload();}
-  async function runWorker(){const b=event.target;b.textContent='Coletando...';const r=await fetch('/api/worker',{method:'POST'}).then(x=>x.json()).catch(()=>null);alert(r&&r.result?r.result.join('\n'):'Coleta concluida');location.reload();}
+  async function removeGame(appId,el){if(!confirm('Remover App '+appId+' do monitoramento?'))return;if(el){el.textContent='...';el.disabled=true;}const r=await fetch('/api/games/'+appId,{method:'DELETE'});if(!r.ok){alert('Falha ao remover');if(el){el.textContent='Remover';el.disabled=false;}return;}location.reload();}
+  async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;alert('Falha: '+(e.error||r.status));return;}}catch(e){b.textContent='Recheck';b.disabled=false;alert('Falha de rede. Tente de novo.');return;}location.reload();}
+  async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'}).then(x=>x.json()).catch(()=>null);alert(r&&r.result?r.result.join('\n'):'Coleta concluida');}catch(e){alert('Falha de rede. Tente de novo.');}location.reload();}
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function plan(){const r=await fetch('/api/billing').then(x=>x.json());const el=document.getElementById('planline');if(el)el.textContent='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';alert(JSON.stringify(r));}
   async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());alert((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
   async function saveKey(){const v=document.getElementById('swkey').value.trim();await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});alert('Key salva. Use Testar wishlist real.');}
   async function checkWish(){const g=await fetch('/api/games').then(x=>x.json());const appId=(g[0]&&g[0].appId)||'557040';const r=await fetch('/api/wishlist/'+appId).then(x=>x.json());alert(r.configured===false?'Sem key: usando reviews como proxy.':JSON.stringify(r).slice(0,300));}
-  async function showAudit(appId){const box=document.getElementById('x-'+appId);box.textContent='Analisando pagina...';const r=await fetch('/api/audit/'+appId).then(x=>x.json());
-    box.innerHTML='<b>Auditoria '+r.score+'/100</b> · desc '+r.shortLen+' chars · '+r.shots+' shots · '+r.trailers+' trailer(s)<br/>'+(r.issues.length?r.issues.map(i=>'− '+i).join('<br/>'):'Sem problemas criticos.');}
-  async function showForecast(appId){const box=document.getElementById('x-'+appId);box.textContent='Calculando...';const r=await fetch('/api/forecast/'+appId).then(x=>x.json());
+  async function showAudit(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Analisando pagina...';if(el)el.disabled=true;try{const r=await fetch('/api/audit/'+appId).then(x=>x.json());
     if(r.error){box.textContent=r.error;return;}
-    box.innerHTML='<b>'+r.band+'</b>'+(r.next?'<br/>Faltam cerca de <b>'+r.need+'</b> avaliacoes positivas seguidas para chegar a <b>'+r.next+'</b>.':'<br/>Sem projecao (base pequena ou topo da escala).');}
-  async function showReply(appId){const box=document.getElementById('x-'+appId);box.textContent='Buscando reviews...';const r=await fetch('/api/reply/'+appId).then(x=>x.json());
+    box.innerHTML='<b>Auditoria '+r.score+'/100</b> · desc '+r.shortLen+' chars · '+r.shots+' shots · '+r.trailers+' trailer(s)<br/>'+(r.issues.length?r.issues.map(i=>'− '+i).join('<br/>'):'Sem problemas criticos.');}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
+  async function showForecast(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Calculando...';if(el)el.disabled=true;try{const r=await fetch('/api/forecast/'+appId).then(x=>x.json());
+    if(r.error){box.textContent=r.error;return;}
+    box.innerHTML='<b>'+r.band+'</b>'+(r.next?'<br/>Faltam cerca de <b>'+r.need+'</b> avaliacoes positivas seguidas para chegar a <b>'+r.next+'</b>.':'<br/>Sem projecao (base pequena ou topo da escala).');}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
+  async function showReply(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Buscando reviews...';if(el)el.disabled=true;try{const r=await fetch('/api/reply/'+appId).then(x=>x.json());
     if(!r.draft){box.textContent='Sem reviews recentes para rascunhar.';return;}
-    box.innerHTML='<b>Rascunho PT:</b> '+r.draft.pt+'<br/><br/><b>Draft EN:</b> '+r.draft.en+'<br/><button class="btn ghost small" style="margin-top:6px" onclick="navigator.clipboard.writeText(this.parentElement.innerText);this.textContent=\'Copiado\'">Copiar</button>';}
+    box.innerHTML='<b>Rascunho PT:</b> '+r.draft.pt+'<br/><br/><b>Draft EN:</b> '+r.draft.en+'<br/><button class="btn ghost small" style="margin-top:6px" onclick="navigator.clipboard.writeText(this.parentElement.innerText);this.textContent=\'Copiado\'">Copiar</button>';}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
   async function saveWh(){const v=document.getElementById('wh').value.trim();await fetch('/api/config/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:v})});alert('Webhook salvo. Use Testar alerta.');}
   async function testWh(){const r=await fetch('/api/discord/test',{method:'POST'}).then(x=>x.json());
     if(r.ok&&!r.simulated){alert('Alerta de teste enviado ao Discord.');}
