@@ -44,7 +44,8 @@ interface DB {
 }
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const file = join(root, "data.json");
+const dir = process.env.DATA_DIR || root;
+const file = join(dir, "data.json");
 
 function blankData(): UserData {
   return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "" };
