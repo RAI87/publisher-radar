@@ -24,16 +24,35 @@ function clearSession(res: any): void {
 const U = (req: any): string => uidOf(req)!;
 
 app.get("/login", (req: any, res: any) => {
-  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar — Publisher Radar</title><style>body{font-family:'Segoe UI',system-ui;background:#10141b;color:#d8dee9;margin:0}.wrap{max-width:420px;margin:60px auto;padding:0 20px}input{width:100%;background:#0b0e14;border:1px solid #2a3444;color:#fff;padding:12px;border-radius:9px;margin:6px 0}input:focus{outline:none;border-color:#66c0f4}.btn{width:100%;background:#c7d5e0;color:#10141b;border:0;padding:12px;border-radius:9px;font-weight:700;cursor:pointer;margin-top:8px}.card{background:#171d25;border:1px solid #232d3d;border-radius:16px;padding:26px}</style></head><body><div class="wrap">
-  <div class="card"><h1 style="margin:0 0 4px">Publisher Radar</h1><p style="color:#8f98a0">Painel do portfolio por cliente. Entre ou crie sua conta piloto (7 dias gratis).</p>
-  <input id="email" type="email" placeholder="voce@publisher.com.br"/><input id="pass" type="password" placeholder="Senha (min 6)"/>
-  <button class="btn" onclick="go('login')">Entrar</button>
-  <button class="btn" style="background:transparent;border:1px solid #2a3444;color:#c7d5e0" onclick="go('register')">Criar conta piloto</button>
-  <p id="msg" style="color:#fca5a5"></p>
-  <p style="color:#8f98a0;font-size:12px"><a href="/landing" style="color:#66c0f4">Ver oferta R$ 99/mes</a></p></div>
-  <script>async function go(a){const email=document.getElementById('email').value,pass=document.getElementById('pass').value;
-    const r=await fetch('/api/auth/'+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,pass})}).then(x=>x.json());
-    if(r.error){document.getElementById('msg').textContent=r.error;return;}location.href='/';}</script></div></body></html>`);
+  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar — Publisher Radar</title><style>${css}</style>${pxHead}<style>
+  .loginwrap{max-width:460px;margin:7vh auto;padding:0 20px;position:relative;z-index:2;transition:opacity .35s ease,transform .35s ease}
+  .loginwrap.out{opacity:0;transform:translateY(14px) scale(.99)}
+  .cab{font-size:15px;margin:0 0 6px}
+  .coin{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--amber);letter-spacing:2px;animation:blink 1.2s steps(2) infinite}
+  .field{margin:10px 0}
+  .field label{display:block;font-size:10px;letter-spacing:1.5px;color:var(--mut);margin-bottom:6px;font-family:'Press Start 2P',monospace;font-size:7px}
+  .field input{width:100%}
+  .shake{animation:shake .3s}
+  @keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+  </style></head><body>${pxBody}<div class="loginwrap rise" id="lw">
+  <div style="text-align:center;margin-bottom:18px"><div class="logo" style="margin:0 auto 12px;width:52px;height:52px">${svg.radar}</div>
+  <div class="px-title" style="font-size:17px">PUBLISHER RADAR<span class="cursor"></span></div>
+  <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
+  <div class="card"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias gratis e 3 jogos demo. Sem cartao.</p>
+  <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="voce@publisher.com.br" autocomplete="email"/></div>
+  <div class="field"><label>SENHA · MIN 6</label><input id="pass" type="password" placeholder="••••••" autocomplete="current-password"/></div>
+  <button class="btn primary" style="width:100%;justify-content:center" id="bIn" onclick="go('login',this)">ENTRAR NO PAINEL</button>
+  <button class="btn ghost" style="width:100%;justify-content:center;margin-top:10px" id="bUp" onclick="go('register',this)">CRIAR CONTA PILOTO</button>
+  <p id="msg" style="color:#fca5a5;min-height:18px"></p>
+  <p style="color:#8f98a0;font-size:12px">Novo por aqui? <a href="/landing">Ver oferta R$ 99/mes</a></p></div>
+  <p style="text-align:center;color:#5b6b85;font-size:11px">PRESS START · dados via Steam API oficial</p></div>
+  <script>async function go(a,el){var msg=document.getElementById('msg');msg.textContent='';
+    var email=document.getElementById('email').value.trim(),pass=document.getElementById('pass').value;
+    if(!email||pass.length<6){msg.textContent='Preencha email e senha (min 6).';document.getElementById('lw').classList.add('shake');setTimeout(function(){document.getElementById('lw').classList.remove('shake')},350);return;}
+    el.disabled=true;var old=el.textContent;el.textContent='CARREGANDO...';
+    try{var r=await fetch('/api/auth/'+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,pass:pass})}).then(function(x){return x.json()});
+    if(r.error){msg.textContent=r.error;el.disabled=false;el.textContent=old;document.getElementById('lw').classList.add('shake');setTimeout(function(){document.getElementById('lw').classList.remove('shake')},350);return;}
+    document.getElementById('lw').classList.add('out');setTimeout(function(){location.href='/'},380);}catch(e){msg.textContent='Falha de rede. Tente de novo.';el.disabled=false;el.textContent=old;}}</script>${pxScript}</body></html>`);
 });
 
 app.post("/api/auth/register", (req, res) => {
