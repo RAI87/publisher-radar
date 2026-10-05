@@ -142,7 +142,10 @@ function needAuth(req: any, res: any, next: any): void {
   const open = ["/landing", "/login", "/api/auth/register", "/api/auth/login", "/api/billing/activate"];
   if (open.includes(req.path)) return next();
   if (req.path === "/" && !uidOf(req)) return res.redirect("/login");
-  if (req.path.startsWith("/api/") && !uidOf(req)) return res.status(401).json({ error: "nao logado — abra /login" });
+  if (req.path.startsWith("/api/") && !uidOf(req)) {
+    if (req.method === "GET" && (req.path === "/api/export.csv" || req.path === "/api/report.md") && String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
+    return res.status(401).json({ error: "nao logado — abra /login" });
+  }
   next();
 }
 app.use(needAuth);
@@ -449,11 +452,12 @@ app.get("/", (req: any, res: any) => {
     setTimeout(function(){document.querySelectorAll('#grid .card').forEach(function(c){var mine=c.dataset.mine==='1';c.style.display=(m===0||(m===1&&mine)||(m===2&&!mine))?'':'none';});g.classList.remove('fading');},160);}
   function afilter(k,el){[...el.parentElement.children].forEach(c=>c.classList.remove('on'));el.classList.add('on');
     document.querySelectorAll('#alerts .alert').forEach(a=>{a.style.display=(k==='all'||a.dataset.k===k)?'':'none';});}
+  async function needLogin(r){if(r.status===401){alert('Sessao expirada. Faca login de novo.');location.href='/login';return true;}return false;}
   async function addGame(){const appId=document.getElementById('appid').value.trim();const label=document.getElementById('lbl').value.trim();
-    if(!appId)return alert('Digite o AppID (so numeros, ex 557040)');await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});location.reload();}
-  async function removeGame(appId,el){if(!confirm('Remover App '+appId+' do monitoramento?'))return;if(el){el.textContent='...';el.disabled=true;}const r=await fetch('/api/games/'+appId,{method:'DELETE'});if(!r.ok){alert('Falha ao remover');if(el){el.textContent='Remover';el.disabled=false;}return;}location.reload();}
-  async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;alert('Falha: '+(e.error||r.status));return;}}catch(e){b.textContent='Recheck';b.disabled=false;alert('Falha de rede. Tente de novo.');return;}location.reload();}
-  async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'}).then(x=>x.json()).catch(()=>null);alert(r&&r.result?r.result.join('\n'):'Coleta concluida');}catch(e){alert('Falha de rede. Tente de novo.');}location.reload();}
+    if(!appId)return alert('Digite o AppID (so numeros, ex 557040)');const r=await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});if(await needLogin(r))return;if(!r.ok){alert('Falha ao adicionar');return;}location.reload();}
+  async function removeGame(appId,el){if(!confirm('Remover App '+appId+' do monitoramento?'))return;if(el){el.textContent='...';el.disabled=true;}const r=await fetch('/api/games/'+appId,{method:'DELETE'});if(await needLogin(r))return;if(!r.ok){alert('Falha ao remover');if(el){el.textContent='Remover';el.disabled=false;}return;}location.reload();}
+  async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;alert('Falha: '+(e.error||r.status));return;}}catch(e){b.textContent='Recheck';b.disabled=false;alert('Falha de rede. Tente de novo.');return;}location.reload();}
+  async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'});if(await needLogin(r))return;const j=await r.json().catch(()=>null);alert(j&&j.result?j.result.join('\n'):'Coleta concluida');}catch(e){alert('Falha de rede. Tente de novo.');}location.reload();}
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function plan(){const r=await fetch('/api/billing').then(x=>x.json());const el=document.getElementById('planline');if(el)el.textContent='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';alert(JSON.stringify(r));}
@@ -593,6 +597,10 @@ app.get("/api/reply/:appId", async (req, res) => {
 });
 
 app.get("/api/report.md", (req: any, res: any) => {
+  if (!uidOf(req)) {
+    if (String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
+    return res.status(401).json({ error: "nao logado — abra /login" });
+  }
   const uid = U(req);
   const games = storage.listGames(uid);
   const alerts = storage.listAlerts(uid).slice(0, 20);
@@ -628,6 +636,10 @@ app.get("/api/history/:appId", (req, res) => res.json(storage.historyFor(U(req),
 app.get("/api/alerts", (req: any, res: any) => res.json(storage.listAlerts(U(req))));
 
 app.get("/api/export.csv", (req: any, res: any) => {
+  if (!uidOf(req)) {
+    if (String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
+    return res.status(401).json({ error: "nao logado — abra /login" });
+  }
   const uid = U(req);
   const games = storage.listGames(uid);
   const lines = ["jogo;appid;tipo;preco_brl;desconto_pct;reviews;aprovacao_pct;velocity_dia;url_steam"];
