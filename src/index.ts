@@ -381,6 +381,8 @@ app.get("/", (req: any, res: any) => {
   const promos = games.filter((g) => (storage.lastSnapshot(U(req), g.appId)?.discountPct ?? 0) > 0).length;
   const lastSync = storage.historyFor(U(req), games[0]?.appId ?? "", 1)[0]?.fetchedAt ?? null;
   const planLabel = me.plan === "pro" ? "PRO" : `TRIAL · ${me.trialLeft} dias restantes`;
+  const nMine = games.filter((g) => g.mine).length;
+  const nFoe = games.length - nMine;
   const rows = games.map((g) => {
     const s = storage.lastSnapshot(U(req), g.appId);
     return `<tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appId}/capsule_184x69.jpg" width="120" style="border-radius:6px" loading="lazy" alt="capsule"/></td><td><b>${g.label}</b><br/><span style="color:#8f98a0">App ${g.appId} · ${g.mine ? "Portfolio" : "Concorrente"}</span></td><td>${s?.priceBRL != null ? `R$ ${s.priceBRL.toFixed(2)}` : "—"}</td><td>${s?.discountPct ?? 0}%</td><td>${s?.totalReviews ?? 0}</td><td><div style="min-width:110px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#8f98a0"><span>${s?.positivePct ?? 0}%</span></div><div class="bar"><i style="width:${s?.positivePct ?? 0}%"></i></div></div></td><td>+${velocity(U(req), g.appId)}/dia</td></tr>`;
@@ -398,18 +400,18 @@ app.get("/", (req: any, res: any) => {
     <div class="kpi ${bombs ? "red" : "green"} rise" style="animation-delay:180ms"><b>${bombs}</b><span>Alertas criticos (24h)</span><br/><small>3+ negativas ou queda de 2pp</small></div>
   </div>
   <div class="sectionhead rv"><h2>Portfolio e concorrentes</h2><span>${games.length} itens · ordenado por adicionado · capsule e preco reais da Steam</span></div>
-  <div class="toolbar">
-    <button class="chip on" onclick="filter(0,this)">Todos</button>
-    <button class="chip" onclick="filter(1,this)">Portfolio</button>
-    <button class="chip" onclick="filter(2,this)">Concorrentes</button>
+  <div class="toolbar" id="filterbar">
+    <button class="chip on" onclick="filter(0,this)">Todos (${games.length})</button>
+    <button class="chip" onclick="filter(1,this)">Portfolio (${nMine})</button>
+    <button class="chip" onclick="filter(2,this)">Concorrentes (${nFoe})</button>
     <span style="flex:1"></span>
     <input id="appid" placeholder="AppID (ex 557040)" style="width:170px"/>
     <input id="lbl" placeholder="Rotulo (ex 99Vidas)" style="width:190px"/>
-    <button class="btn" onclick="addGame()">Adicionar</button>
+    <button class="btn" onclick="addGame(this)">+ Adicionar</button>
     <button class="btn ghost" onclick="csv()">Exportar CSV</button>
   </div>
-  <div class="legend"><span>${svg.check} Dados de hoje via API oficial</span><span>${svg.bell} Critico = review-bomb</span><span>${svg.tag} Atencao = preco/rating</span></div>
-  <div class="grid" id="grid" style="margin-top:12px">${games.map((g, i) => cardHtml(U(req), g, i)).join("") || "<p style=color:#8f98a0>Nenhum jogo.</p>"}</div>
+  <div class="legend"><span>${svg.check} Dados de hoje via API oficial</span><span>${svg.bell} Critico = review-bomb</span><span>${svg.tag} Atencao = preco/rating</span><span id="showline"></span></div>
+  <div class="grid" id="grid" style="margin-top:12px">${games.length ? games.map((g, i) => cardHtml(uid, g, i)).join("") : `<div class="card"><div class="pad"><b>Nenhum jogo monitorado ainda.</b><p style="color:#8f98a0">Carregue os 3 jogos demo (99Vidas, Atomic Picnic, Sportia) ou adicione pelo AppID acima.</p><button class="btn primary" onclick="seedDemo(this)">CARREGAR 3 JOGOS DEMO</button></div></div>`}</div>
   <div class="sectionhead rv"><h2>Comparativo do portfolio</h2><span>preco BR, desconto, base de reviews, aprovacao e velocity de 7 dias</span></div>
   <table><tr><th>Capsule</th><th>Jogo</th><th>Preco</th><th>Desc.</th><th>Reviews</th><th>Aprovacao</th><th>Velocity</th></tr>${rows}</table>
   <div class="sectionhead rv"><h2>Calendario de vendas</h2><span>proximas janelas — agir antes, nao depois</span></div>
@@ -448,13 +450,15 @@ app.get("/", (req: any, res: any) => {
   <tr><td>Velocity</td><td>historico local de 8 coletas</td><td>media diaria, sem projecao inventada</td></tr></table>
   <div class="footer"><span>Publisher Radar · build 0.2.0</span><span>Imagens e precos: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a></span></div>
   <script>
-  function filter(m,el){pxFilter(m,el);var g=document.getElementById('grid');g.classList.add('fading');
-    setTimeout(function(){document.querySelectorAll('#grid .card').forEach(function(c){var mine=c.dataset.mine==='1';c.style.display=(m===0||(m===1&&mine)||(m===2&&!mine))?'':'none';});g.classList.remove('fading');},160);}
+  function showline(){var cards=document.querySelectorAll('#grid .card');var vis=0;cards.forEach(function(c){if(c.style.display!=='none')vis++;});var el=document.getElementById('showline');if(el)el.textContent='Mostrando '+vis+' de '+cards.length+' jogos';}
+  function filter(m,el){var bar=document.getElementById('filterbar');bar.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});el.classList.add('on');var g=document.getElementById('grid');g.classList.add('fading');
+    setTimeout(function(){document.querySelectorAll('#grid .card').forEach(function(c){var mine=c.getAttribute('data-mine')==='1';c.style.display=(m===0||(m===1&&mine)||(m===2&&!mine))?'':'none';});g.classList.remove('fading');showline();},160);}
   function afilter(k,el){[...el.parentElement.children].forEach(c=>c.classList.remove('on'));el.classList.add('on');
-    document.querySelectorAll('#alerts .alert').forEach(a=>{a.style.display=(k==='all'||a.dataset.k===k)?'':'none';});}
+    document.querySelectorAll('#alerts .alert').forEach(a=>{a.style.display=(k==='all'||a.getAttribute('data-k')===k)?'':'none';});}
   async function needLogin(r){if(r.status===401){alert('Sessao expirada. Faca login de novo.');location.href='/login';return true;}return false;}
-  async function addGame(){const appId=document.getElementById('appid').value.trim();const label=document.getElementById('lbl').value.trim();
-    if(!appId)return alert('Digite o AppID (so numeros, ex 557040)');const r=await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});if(await needLogin(r))return;if(!r.ok){alert('Falha ao adicionar');return;}location.reload();}
+  async function addGame(el){const appId=document.getElementById('appid').value.trim();const label=document.getElementById('lbl').value.trim();
+    if(!appId)return alert('Digite o AppID (so numeros, ex 557040)');if(el){el.textContent='Adicionando...';el.disabled=true;}const r=await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));alert('Falha: '+(e.error||r.status));if(el){el.textContent='+ Adicionar';el.disabled=false;}return;}location.reload();}
+  async function seedDemo(el){if(el){el.textContent='Carregando...';el.disabled=true;}const r=await fetch('/api/games/seed',{method:'POST'});if(await needLogin(r))return;if(!r.ok){alert('Falha ao carregar demo');if(el){el.textContent='CARREGAR 3 JOGOS DEMO';el.disabled=false;}return;}location.reload();}
   async function removeGame(appId,el){if(!confirm('Remover App '+appId+' do monitoramento?'))return;if(el){el.textContent='...';el.disabled=true;}const r=await fetch('/api/games/'+appId,{method:'DELETE'});if(await needLogin(r))return;if(!r.ok){alert('Falha ao remover');if(el){el.textContent='Remover';el.disabled=false;}return;}location.reload();}
   async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;alert('Falha: '+(e.error||r.status));return;}}catch(e){b.textContent='Recheck';b.disabled=false;alert('Falha de rede. Tente de novo.');return;}location.reload();}
   async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'});if(await needLogin(r))return;const j=await r.json().catch(()=>null);alert(j&&j.result?j.result.join('\n'):'Coleta concluida');}catch(e){alert('Falha de rede. Tente de novo.');}location.reload();}
@@ -480,7 +484,7 @@ app.get("/", (req: any, res: any) => {
     else{alert('Falha: '+(r.error||'verifique o webhook'));}}
   async function bulk(){const t=document.getElementById('bulk').value;if(!t)return alert('Cole ao menos um AppID ou URL');const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})}).then(x=>x.json());alert(r.added+' jogo(s) adicionado(s).');location.reload();}
   function cd(id,iso){const el=document.getElementById(id);if(!el)return;const d=Math.ceil((new Date(iso)-Date.now())/86400000);el.textContent=d>0?('faltam '+d+' dias'):(d===0?'comeca hoje':'em andamento ou encerrado');}
-  cd('cd1','2026-10-19T10:00:00-03:00');cd('cd2','2027-02-13T10:00:00-03:00');
+  cd('cd1','2026-10-19T10:00:00-03:00');cd('cd2','2027-02-13T10:00:00-03:00');showline();
   </script>${pxScript}</div></body></html>`);
 });
 
@@ -555,6 +559,12 @@ app.post("/api/games/bulk", (req, res) => {
     } catch {}
   }
   res.json({ added: added.length, ids });
+});
+
+app.post("/api/games/seed", (req: any, res: any) => {
+  const uid = U(req);
+  storage.seedDemo(uid);
+  res.json({ ok: true, games: storage.listGames(uid) });
 });
 
 app.get("/api/config", (req: any, res: any) => {
