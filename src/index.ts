@@ -463,12 +463,20 @@ app.get("/", (req: any, res: any) => {
     <button class="btn ghost" onclick="saveKey()">Salvar key</button>
     <button class="btn ghost" onclick="checkWish()">Testar wishlist real</button>
   </div>
-  <div id="pixbox" style="display:none" class="card"><div class="pad"><b>Pix R$ 99,00 — 30 dias de Pro</b>
-  <p style="color:#8f98a0;font-size:12px">Pague no app do banco com o codigo copia e cola e clique em JA PAGUEI. Liberamos em ate 1 dia util.</p>
-  <textarea id="pixcode" rows="3" readonly style="width:100%;background:#05080f;color:#d9f99d;border:3px solid #2a3a55;font-size:11px"></textarea>
-  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost small" onclick="copyPix()">Copiar codigo</button>
-  <button class="btn primary small" onclick="markPaid(this)">JA PAGUEI</button></div>
-  <p id="pixstatus" style="font-size:12px"></p></div></div>
+  <div id="pixbox" style="display:none" class="card rv"><div class="pad">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <div><span class="pxnum">CHECKOUT</span><h3 style="margin:10px 0 2px">Pro · 30 dias · <span style="color:var(--neon)">R$ 99,00</span></h3>
+    <span class="meta">Pix copia e cola · libera em ate 1 dia util · sem fidelidade</span></div>
+    <div id="paysteps" style="display:flex;gap:6px"><span class="pill">1 COPIAR</span><span class="pill">2 PAGAR</span><span class="pill">3 JA PAGUEI</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;margin-top:12px;align-items:start" id="pixgrid">
+    <div style="background:#fff;padding:10px;border:3px solid #000;box-shadow:4px 4px 0 #000"><img id="pixqr" width="196" height="196" alt="QR Pix" style="display:block;width:100%"/></div>
+    <div><p style="color:#8f98a0;font-size:12px;margin:0 0 6px">PASSO 1 — COPIE O CODIGO NO APP DO BANCO (OU LEIA O QR)</p>
+    <textarea id="pixcode" rows="4" readonly style="width:100%;background:#05080f;color:#d9f99d;border:3px solid #2a3a55;font-size:11px"></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost small" onclick="copyPix()">Copiar codigo</button>
+    <button class="btn primary small" onclick="markPaid(this)">JA PAGUEI · R$ 99</button></div>
+    <p id="pixstatus" style="font-size:12px"></p></div>
+  </div></div></div>
   <div class="sectionhead rv"><h2>Relatorio e integracao</h2><span>o que o publisher encaminha no Slack</span></div>
   <div class="toolbar">
     <button class="btn ghost" onclick="window.open('/api/report.md','_blank')">Relatorio semanal (Markdown)</button>
@@ -516,7 +524,7 @@ app.get("/", (req: any, res: any) => {
   async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
   async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){alert(r.error);return;}const el=document.getElementById('planline');var t='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';if(r.pendingPro)t+=' · PAGAMENTO EM CONFERENCIA';if(el)el.textContent=t;alert(t);}
   async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());alert((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
-  async function showPix(el){var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView();var ta=document.getElementById('pixcode');ta.value='Gerando codigo...';try{var r=await fetch('/api/billing/pix').then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · vale por 30 dias de Pro.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
+  async function showPix(el){var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando codigo...';try{var r=await fetch('/api/billing/pix').then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · vale por 30 dias de Pro.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
   function copyPix(){var ta=document.getElementById('pixcode');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}alert('Codigo Pix copiado.');}
   async function markPaid(el){el.disabled=true;el.textContent='Enviando...';var r=await fetch('/api/billing/paid',{method:'POST'}).then(x=>x.json());document.getElementById('pixstatus').textContent=r.status||'ok';el.textContent='JA PAGUEI';el.disabled=false;plan();}
   async function saveKey(){const v=document.getElementById('swkey').value.trim();await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});alert('Key salva. Use Testar wishlist real.');}
