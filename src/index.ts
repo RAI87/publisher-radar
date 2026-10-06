@@ -8,6 +8,26 @@ import { sendDiscord } from "./discord.js";
 
 const app = express();
 app.use(express.json());
+app.use((_req: any, res: any, next: any) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
+
+const attempts = new Map<string, { n: number; until: number }>();
+function throttled(ip: string): boolean {
+  const now = Date.now();
+  const a = attempts.get(ip) ?? { n: 0, until: 0 };
+  if (now < a.until) return true;
+  a.n += 1;
+  if (a.n > 20) {
+    a.until = now + 5 * 60 * 1000;
+    a.n = 0;
+  }
+  attempts.set(ip, a);
+  return false;
+}
 
 const COOKIE = "pr_session";
 function uidOf(req: any): string | null {
@@ -23,6 +43,20 @@ function clearSession(res: any): void {
   res.setHeader("Set-Cookie", `${COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
 }
 const U = (req: any): string => uidOf(req)!;
+
+const collecting = new Set<string>();
+function collectSoon(uid: string, appIds: string[]): void {
+  for (const appId of appIds) {
+    if (storage.lastSnapshot(uid, appId)) continue;
+    const key = uid + ":" + appId;
+    if (collecting.has(key)) continue;
+    collecting.add(key);
+    fetchSnapshot(appId)
+      .then((s) => storage.pushSnapshot(uid, s))
+      .catch(() => {})
+      .finally(() => collecting.delete(key));
+  }
+}
 
 app.get("/login", (req: any, res: any) => {
   res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar — Publisher Radar</title><style>${css}</style>${pxHead}<style>
@@ -60,6 +94,7 @@ app.post("/api/auth/register", (req, res) => {
   try {
     const { user, token } = storage.register(String(req.body?.email ?? ""), String(req.body?.pass ?? ""));
     storage.seedDemo(user.id);
+    collectSoon(user.id, storage.listGames(user.id).map((g) => g.appId));
     setSession(res, token);
     res.json({ ok: true, email: user.email });
   } catch (e) {
@@ -69,6 +104,7 @@ app.post("/api/auth/register", (req, res) => {
 
 app.post("/api/auth/login", (req, res) => {
   try {
+    if (throttled(String(req.ip))) return res.status(429).json({ error: "muitas tentativas — aguarde 5 min" });
     const { user, token } = storage.login(String(req.body?.email ?? ""), String(req.body?.pass ?? ""));
     setSession(res, token);
     res.json({ ok: true, email: user.email });
@@ -417,6 +453,11 @@ app.get("/", (req: any, res: any) => {
   const promos = games.filter((g) => (storage.lastSnapshot(U(req), g.appId)?.discountPct ?? 0) > 0).length;
   const lastSync = storage.historyFor(U(req), games[0]?.appId ?? "", 1)[0]?.fetchedAt ?? null;
   const planLabel = me.plan === "pro" ? "PRO" : `TRIAL · ${me.trialLeft} dias restantes`;
+  const trialDead = me.plan !== "pro" && me.trialLeft <= 0;
+  const hasWh = Boolean(storage.getWebhook(uid));
+  const hasGames = games.length > 0;
+  const hasData = games.some((g) => storage.lastSnapshot(uid, g.appId));
+  const step = (done: boolean, txt: string) => `<span class="pill" style="${done ? "border-color:var(--neon);color:#d9f99d" : ""}">${done ? "OK · " : "1 · "}${txt}</span>`;
   const nMine = games.filter((g) => g.mine).length;
   const nFoe = games.length - nMine;
   const rows = games.map((g) => {
@@ -429,6 +470,10 @@ app.get("/", (req: any, res: any) => {
   <div class="wrap">
   <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · ultima sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
   <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
+  ${trialDead ? `<div class="alert bomb"><span style="color:#f87171">${svg.bell}</span><span><b> trial expirado.</b> Ative o Pro para continuar coletando. <a href="#conta">Ativar Pro · R$ 99 Pix</a></span></div>` : ""}
+  <div class="toolbar" id="onboard">
+    ${step(hasGames, "adicionar jogos")}${step(hasData, "rodar 1a coleta")}${step(hasWh, "conectar Discord")}
+  </div>
   <div class="kpis">
     <div class="kpi rise"><b>${games.length}<span style="font-size:14px;color:#8f98a0">/30</span></b><span>Jogos monitorados</span><br/><small>limite do plano Piloto</small></div>
     <div class="kpi rise" style="animation-delay:60ms"><b>${totalReviews.toLocaleString("pt-BR")}</b><span>Reviews somados no portfolio</span><br/><small>base para velocity diaria</small></div>
@@ -458,7 +503,7 @@ app.get("/", (req: any, res: any) => {
   <tr><td><b>Steam Next Fest · Out 2026</b></td><td>19–26 out 2026</td><td id="cd1">—</td><td>Auditoria da pagina + velocity diaria da demo</td></tr>
   <tr><td><b>Made in Brazil Sale</b></td><td>13–17 fev (anual)</td><td id="cd2">—</td><td>Relatorio por publisher + comparativo de desconto</td></tr>
   <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table>
-  <div class="sectionhead rv"><h2>Conta e cobranca</h2><span id="planline">plano e trial</span></div>
+  <div class="sectionhead rv" id="conta"><h2>Conta e cobranca</h2><span id="planline">plano e trial</span></div>
   <div class="toolbar">
     <button class="btn ghost" onclick="plan()">Ver meu plano</button>
     <button class="btn primary" onclick="showPix(this)">ATIVAR PRO · R$ 99 Pix</button>
@@ -607,7 +652,9 @@ app.post("/api/games", (req: any, res: any) => {
     const parsed = parseAppId(String(raw)) ?? String(raw).trim();
     const { mine, label } = req.body ?? {};
     if (!parsed) return res.status(400).json({ error: "appId ou URL Steam obrigatorio" });
-    res.json(storage.addGame(U(req),parsed, mine !== false, String(label ?? "")));
+    const g = storage.addGame(U(req), parsed, mine !== false, String(label ?? ""));
+    collectSoon(U(req), [g.appId]);
+    res.json(g);
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : "erro" });
   }
@@ -619,16 +666,19 @@ app.post("/api/games/bulk", (req, res) => {
   const added = [];
   for (const id of ids) {
     try {
-      added.push(storage.addGame(U(req),id, true, ""));
+      added.push(storage.addGame(U(req), id, true, ""));
     } catch {}
   }
+  collectSoon(U(req), added.map((g: any) => g.appId));
   res.json({ added: added.length, ids });
 });
 
 app.post("/api/games/seed", (req: any, res: any) => {
   const uid = U(req);
   storage.seedDemo(uid);
-  res.json({ ok: true, games: storage.listGames(uid) });
+  const games = storage.listGames(uid);
+  collectSoon(uid, games.map((g) => g.appId));
+  res.json({ ok: true, games });
 });
 
 app.get("/api/config", (req: any, res: any) => {
@@ -698,8 +748,10 @@ app.delete("/api/games/:appId", (req, res) => {
 
 app.get("/api/check/:appId", async (req, res) => {
   try {
+    const requester = U(req);
+    if (!storage.trialOk(requester)) return res.status(402).json({ error: "trial expirado — ative o Pro para continuar coletando" });
     const s = await fetchSnapshot(req.params.appId);
-    storage.pushSnapshot(U(req),s);
+    storage.pushSnapshot(requester, s);
     res.json(s);
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : "erro" });
@@ -730,6 +782,7 @@ app.get("/api/export.csv", (req: any, res: any) => {
 app.post("/api/worker", async (req: any, res: any) => {
   try {
     const requester = U(req);
+    if (!storage.trialOk(requester)) return res.status(402).json({ error: "trial expirado — ative o Pro para continuar coletando" });
     const { fetchSnapshot: fsnap, fetchRecentNegatives: fneg } = await import("./steam.js");
     const { sendRadarEmbed: sendE } = await import("./discord.js");
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

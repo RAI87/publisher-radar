@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, copyFileSync, renameSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { SteamSnapshot } from "./steam.js";
@@ -52,10 +52,22 @@ function blankData(): UserData {
   return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "" };
 }
 
+const SESSION_DAYS = Number(process.env.SESSION_DAYS || 30);
+const sessionAlive = (iso: string): boolean =>
+  Date.now() - new Date(iso).getTime() < SESSION_DAYS * 86400000;
+
 function load(): DB {
   if (!existsSync(file)) return { users: [], sessions: [], data: {} };
+  let raw: any;
   try {
-    const raw = JSON.parse(readFileSync(file, "utf8")) as any;
+    raw = JSON.parse(readFileSync(file, "utf8")) as any;
+  } catch {
+    try {
+      copyFileSync(file, file + ".corrupt-" + Date.now() + ".json");
+    } catch {}
+    return { users: [], sessions: [], data: {} };
+  }
+  try {
     if (Array.isArray(raw.users)) {
       return { users: raw.users, sessions: raw.sessions ?? [], data: raw.data ?? {} };
     }
@@ -85,7 +97,10 @@ function load(): DB {
 }
 
 function save(db: DB): void {
-  writeFileSync(file, JSON.stringify(db, null, 2));
+  db.sessions = db.sessions.filter((s) => sessionAlive(s.createdAt)).slice(-500);
+  const tmp = file + ".tmp";
+  writeFileSync(tmp, JSON.stringify(db, null, 2));
+  renameSync(tmp, file);
 }
 
 function ud(db: DB, userId: string): UserData {
@@ -149,7 +164,7 @@ export const storage = {
   me(token: string): (User & { trialLeft: number }) | null {
     const db = load();
     const s = db.sessions.find((x) => x.token === token);
-    if (!s) return null;
+    if (!s || !sessionAlive(s.createdAt)) return null;
     const u = db.users.find((x) => x.id === s.userId);
     if (!u) return null;
     if (u.pendingPro === undefined) u.pendingPro = false;
@@ -160,6 +175,22 @@ export const storage = {
   },
   userEmail(userId: string): string {
     return load().users.find((u) => u.id === userId)?.email ?? userId;
+  },
+  trialOk(userId: string): boolean {
+    const u = load().users.find((x) => x.id === userId);
+    if (!u) return false;
+    return u.plan === "pro" || trialLeft(u) > 0;
+  },
+  stats(): { users: number; sessions: number; games: number; snapshots: number; alerts: number } {
+    const db = load();
+    const ids = Object.keys(db.data);
+    return {
+      users: db.users.length,
+      sessions: db.sessions.length,
+      games: ids.reduce((a, k) => a + (db.data[k]?.games.length ?? 0), 0),
+      snapshots: ids.reduce((a, k) => a + (db.data[k]?.history.length ?? 0), 0),
+      alerts: ids.reduce((a, k) => a + (db.data[k]?.alerts.length ?? 0), 0)
+    };
   },
   setPlan(email: string, plan: "trial" | "pro"): boolean {
     const db = load();
