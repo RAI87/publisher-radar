@@ -8,7 +8,7 @@ export async function sendDiscord(userId: string, text: string): Promise<{ simul
     return { simulated: true };
   }
   if (!url.startsWith("https://discord.com/api/webhooks/")) {
-    throw new Error("Webhook invalido — use o URL copiado em Canal > Integracoes > Webhooks");
+    throw new Error("Webhook inválido — use o URL copiado em Canal > Integracoes > Webhooks");
   }
   const res = await fetch(url, {
     method: "POST",
@@ -31,7 +31,7 @@ export async function sendRadarEmbed(userId: string, snap: SteamSnapshot, change
     return { simulated: true };
   }
   if (!url.startsWith("https://discord.com/api/webhooks/")) {
-    throw new Error("Webhook invalido");
+    throw new Error("Webhook inválido");
   }
   await fetch(url, {
     method: "POST",

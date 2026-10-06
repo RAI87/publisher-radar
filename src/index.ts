@@ -73,13 +73,13 @@ app.get("/login", (req: any, res: any) => {
   <div style="text-align:center;margin-bottom:18px"><div class="logo" style="margin:0 auto 12px;width:52px;height:52px">${svg.radar}</div>
   <div class="px-title" style="font-size:17px">PUBLISHER RADAR<span class="cursor"></span></div>
   <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
-  <div class="card"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias gratis e 3 jogos demo. Sem cartao.</p>
-  <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="voce@publisher.com.br" autocomplete="email"/></div>
+  <div class="card"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias gratis e 3 jogos demo. Sem cartão.</p>
+  <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="publisher@studio.com" autocomplete="email"/></div>
   <div class="field"><label>SENHA · MIN 6</label><input id="pass" type="password" placeholder="••••••" autocomplete="current-password"/></div>
   <button class="btn primary" style="width:100%;justify-content:center" id="bIn" onclick="go('login',this)">ENTRAR NO PAINEL</button>
   <button class="btn ghost" style="width:100%;justify-content:center;margin-top:10px" id="bUp" onclick="go('register',this)">CRIAR CONTA PILOTO</button>
   <p id="msg" style="color:#fca5a5;min-height:18px"></p>
-  <p style="color:#8f98a0;font-size:12px">Novo por aqui? <a href="/landing">Ver oferta R$ 99/mes</a></p></div>
+  <p style="color:#8f98a0;font-size:12px">Novo por aqui? <a href="/landing">Ver oferta R$ 99/mês</a></p></div>
   <p style="text-align:center;color:#5b6b85;font-size:11px">PRESS START · dados via Steam API oficial</p></div>
   <script>async function go(a,el){var msg=document.getElementById('msg');msg.textContent='';
     var email=document.getElementById('email').value.trim(),pass=document.getElementById('pass').value;
@@ -123,7 +123,7 @@ app.post("/api/auth/logout", (req, res) => {
 app.delete("/api/auth/me", (req, res) => {
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = token ? storage.me(token) : null;
-  if (!me) return res.status(401).json({ error: "nao logado" });
+  if (!me) return res.status(401).json({ error: "não logado" });
   storage.deleteUser(me.id);
   clearSession(res);
   res.json({ ok: true });
@@ -132,7 +132,7 @@ app.delete("/api/auth/me", (req, res) => {
 app.get("/api/auth/me", (req, res) => {
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = token ? storage.me(token) : null;
-  if (!me) return res.status(401).json({ error: "nao logado" });
+  if (!me) return res.status(401).json({ error: "não logado" });
   res.json({ email: me.email, plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true });
 });
 
@@ -142,30 +142,30 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/billing", (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = storage.me(token!)!;
-  res.json({ plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true, price: "R$ 99/mes" });
+  res.json({ plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true, price: "R$ 99/mês" });
 });
 
 app.post("/api/billing/checkout", (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   res.json({ ok: true, amount: pixAmount(), pixKey: pixKey(), pixCode: pixCode().code, next: "Pague no app do banco (Pix copia e cola) e clique em JA PAGUEI." });
 });
 
 app.get("/api/billing/pix", (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   const p = pixCode();
   res.json({ amount: pixAmount(), code: p.code, name: p.name });
 });
 
 app.post("/api/billing/paid", (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   storage.markPaid(uid);
-  res.json({ ok: true, status: "pagamento em conferencia — liberamos o Pro em ate 1 dia util" });
+  res.json({ ok: true, status: "pagamento em conferência — liberamos o Pro em até 1 dia util" });
 });
 
 app.post("/api/billing/activate", (req, res) => {
@@ -181,23 +181,23 @@ app.get("/api/billing/pending", (req, res) => {
 
 app.get("/api/steamworks", (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   const k = storage.getKey(uid);
   res.json({ configured: Boolean(k), hint: "Cole a Web API Key do grupo financeiro (Steamworks > Users & Permissions > Manage Groups). Sem ela, usamos reviews/players publicos como proxy de velocity." });
 });
 
 app.post("/api/steamworks", (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   storage.setKey(U(req), String(req.body?.key ?? ""));
   res.json({ ok: true });
 });
 
 app.get("/api/wishlist/:appId", async (req, res) => {
   const uid = uidOf(req);
-  if (!uid) return res.status(401).json({ error: "nao logado" });
+  if (!uid) return res.status(401).json({ error: "não logado" });
   const key = storage.getKey(uid);
-  if (!key) return res.status(501).json({ error: "Steamworks key nao configurada — velocity via reviews como proxy", configured: false });
+  if (!key) return res.status(501).json({ error: "Steamworks key não configurada — velocity via reviews como proxy", configured: false });
   try {
     const r = await fetch(`https://partner.steampowered.com/api/v1/app/${req.params.appId}/wishlist?key=${encodeURIComponent(key)}`);
     if (!r.ok) return res.status(502).json({ error: `Steamworks respondeu ${r.status} — confira a key e as permissoes do grupo financeiro` });
@@ -213,7 +213,7 @@ function needAuth(req: any, res: any, next: any): void {
   if (req.path === "/" && !uidOf(req)) return res.redirect("/login");
   if (req.path.startsWith("/api/") && !uidOf(req)) {
     if (req.method === "GET" && (req.path === "/api/export.csv" || req.path === "/api/report.md") && String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
-    return res.status(401).json({ error: "nao logado — abra /login" });
+    return res.status(401).json({ error: "não logado — abra /login" });
   }
   next();
 }
@@ -229,7 +229,7 @@ const svg = {
   ext: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
 };
 
-const pxHead = `<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">`;
+const pxHead = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">`;
 const pxBody = `<canvas id="pxbg"></canvas><div class="scan"></div><div class="vig"></div>`;
 const pxScript = `<script>
 (function(){var c=document.getElementById('pxbg');if(!c)return;var x=c.getContext('2d');var W,H;
@@ -270,7 +270,7 @@ const css = `
 *{box-sizing:border-box}
 :root{--bg:#0a0e1a;--panel:#121828;--panel2:#0d1322;--line:#26324a;--txt:#dbe4f3;--mut:#8f9bb3;--neon:#4ade80;--amber:#fbbf24;--red:#f87171;--blue:#66c0f4;--mag:#e879f9}
 html{scroll-behavior:smooth}
-body{font-family:'Segoe UI',Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);margin:0;font-size:14px;overflow-x:hidden}
+body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);margin:0;font-size:14px;overflow-x:hidden}
 .px{font-family:'Press Start 2P',monospace}
 a{color:var(--blue);text-decoration:none}
 #pxbg{position:fixed;inset:0;z-index:0;opacity:.9}
@@ -353,6 +353,10 @@ tbody tr:hover{background:#16203a}
 .sectionhead span{color:var(--mut);font-size:12px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin:6px 0 0;flex-wrap:wrap}
 .footer{margin-top:44px;padding-top:18px;border-top:3px solid #1b2740;color:var(--mut);font-size:12px;display:flex;gap:16px;flex-wrap:wrap}
+#toasts{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;flex-direction:column;gap:10px;max-width:min(380px,90vw)}
+.toast{background:#0d1526;border:3px solid var(--line);border-left:6px solid var(--blue);padding:12px 14px;box-shadow:5px 5px 0 #000;font-size:13px;animation:rise .25s ease both}
+.toast.ok{border-left-color:var(--neon)}.toast.err{border-left-color:var(--red)}.toast.warn{border-left-color:var(--amber)}
+.toast.out{opacity:0;transform:translateX(24px);transition:all .3s}
 .discord{background:#1e1f22;border:3px solid #111;box-shadow:6px 6px 0 #000;padding:16px;max-width:560px}
 .msg{background:#2b2d31;padding:12px;margin-top:10px;animation:rise .5s ease both;border:2px solid #111}
 .embed{border-left:4px solid #5865f2;background:#232428;padding:12px;margin-top:8px}
@@ -379,7 +383,7 @@ function velocity(u: string, appId: string): number {
 
 function sevFor(kind: string): string {
   if (kind === "review-bomb") return `<span class="sev crit">CRITICO</span>`;
-  if (kind === "price" || kind === "rating") return `<span class="sev warn">ATENCAO</span>`;
+  if (kind === "price" || kind === "rating") return `<span class="sev warn">ATENÇÃO</span>`;
   return `<span class="sev info">INFO</span>`;
 }
 
@@ -408,7 +412,7 @@ function cardHtml(u: string, g: any, i: number): string {
       </div>
       <div class="meta"><span style="font-size:20px;font-weight:800;color:#fff">${s?.priceBRL != null ? `R$ ${s.priceBRL.toFixed(2)}` : "A anunciar"}</span>
       <span>${s?.totalReviews ?? 0} reviews</span><span>${s?.ccu ?? 0} online</span></div>
-      <div class="meta"><span>Aprovacao ${pos}%</span><span style="margin-left:auto">Vel. ${vel}/dia</span></div>
+      <div class="meta"><span>Aprovação ${pos}%</span><span style="margin-left:auto">Vel. ${vel}/dia</span></div>
       <div class="bar"><i style="width:${pos}%"></i></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <a href="https://store.steampowered.com/app/${g.appId}" target="_blank" rel="noopener">Abrir na Steam ${svg.ext}</a>
@@ -454,19 +458,20 @@ app.get("/", (req: any, res: any) => {
   <style>${css}</style>${pxHead}</head><body>${pxBody}
   <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
   <div class="wrap">
-  <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · ultima sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
+  <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · última sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
   <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
   ${trialDead ? `<div class="alert bomb"><span style="color:#f87171">${svg.bell}</span><span><b> trial expirado.</b> Ative o Pro para continuar coletando. <a href="#conta">Ativar Pro · R$ 99 Pix</a></span></div>` : ""}
   <div class="toolbar" id="onboard">
     ${step(hasGames, "adicionar jogos")}${step(hasData, "rodar 1a coleta")}${step(hasWh, "conectar Discord")}
   </div>
+  <div id="toasts"></div>
   <div class="kpis">
     <div class="kpi rise"><b>${games.length}<span style="font-size:14px;color:#8f98a0">/30</span></b><span>Jogos monitorados</span><br/><small>limite do plano Piloto</small></div>
     <div class="kpi rise" style="animation-delay:60ms"><b>${totalReviews.toLocaleString("pt-BR")}</b><span>Reviews somados no portfolio</span><br/><small>base para velocity diaria</small></div>
-    <div class="kpi amber rise" style="animation-delay:120ms"><b>${promos}</b><span>Em promocao agora</span><br/><small>preco e desconto via Steam BR</small></div>
-    <div class="kpi ${bombs ? "red" : "green"} rise" style="animation-delay:180ms"><b>${bombs}</b><span>Alertas criticos (24h)</span><br/><small>3+ negativas ou queda de 2pp</small></div>
+    <div class="kpi amber rise" style="animation-delay:120ms"><b>${promos}</b><span>Em promoção agora</span><br/><small>preço e desconto via Steam BR</small></div>
+    <div class="kpi ${bombs ? "red" : "green"} rise" style="animation-delay:180ms"><b>${bombs}</b><span>Alertas críticos (24h)</span><br/><small>3+ negativas ou queda de 2pp</small></div>
   </div>
-  <div class="sectionhead rv"><h2>Portfolio e concorrentes</h2><span>${games.length} itens · ordenado por adicionado · capsule e preco reais da Steam</span></div>
+  <div class="sectionhead rv"><h2>Portfolio e concorrentes</h2><span>${games.length} itens · ordenado por adicionado · capsule e preço reais da Steam</span></div>
   <div class="toolbar" id="filterbar">
     <button class="chip on" onclick="filter(0,this)">Todos (${games.length})</button>
     <button class="chip" onclick="filter(1,this)">Portfolio (${nMine})</button>
@@ -478,16 +483,16 @@ app.get("/", (req: any, res: any) => {
     <button class="btn ghost" onclick="csv()">Exportar CSV</button>
     <button class="btn ghost" onclick="diag(this)">Diagnostico</button>
   </div>
-  <div class="legend"><span>${svg.check} Dados de hoje via API oficial</span><span>${svg.bell} Critico = review-bomb</span><span>${svg.tag} Atencao = preco/rating</span><span id="showline"></span></div>
+  <div class="legend"><span>${svg.check} Dados de hoje via API oficial</span><span>${svg.bell} Crítico = review-bomb</span><span>${svg.tag} Atenção = preço/rating</span><span id="showline"></span></div>
   <div id="errbar" style="display:none;background:#3a1414;border:3px solid #f87171;color:#fecaca;padding:10px 14px;margin:10px 0;font-size:12px"></div>
   <div id="diagbox" style="display:none;background:#0c1a12;border:3px solid #4ade80;color:#d9f99d;padding:10px 14px;margin:10px 0;font-size:12px;white-space:pre-wrap"></div>
   <div class="grid" id="grid" style="margin-top:12px">${games.length ? games.map((g, i) => cardHtml(uid, g, i)).join("") : `<div class="card"><div class="pad"><b>Nenhum jogo monitorado ainda.</b><p style="color:#8f98a0">Carregue os 3 jogos demo (99Vidas, Atomic Picnic, Sportia) ou adicione pelo AppID acima.</p><button class="btn primary" onclick="seedDemo(this)">CARREGAR 3 JOGOS DEMO</button></div></div>`}</div>
-  <div class="sectionhead rv"><h2>Comparativo do portfolio</h2><span>preco BR, desconto, base de reviews, aprovacao e velocity de 7 dias</span></div>
-  <table><tr><th>Capsule</th><th>Jogo</th><th>Preco</th><th>Desc.</th><th>Reviews</th><th>Aprovacao</th><th>Velocity</th></tr>${rows}</table>
-  <div class="sectionhead rv"><h2>Calendario de vendas</h2><span>proximas janelas — agir antes, nao depois</span></div>
+  <div class="sectionhead rv"><h2>Comparativo do portfolio</h2><span>preço BR, desconto, base de reviews, aprovacao e velocity de 7 dias</span></div>
+  <table><tr><th>Capsule</th><th>Jogo</th><th>Preço</th><th>Desc.</th><th>Reviews</th><th>Aprovação</th><th>Velocity</th></tr>${rows}</table>
+  <div class="sectionhead rv"><h2>Calendario de vendas</h2><span>proximas janelas — agir antes, não depois</span></div>
   <table><tr><th>Evento</th><th>Data</th><th>Contagem</th><th>O que o Radar faz</th></tr>
-  <tr><td><b>Steam Next Fest · Out 2026</b></td><td>19–26 out 2026</td><td id="cd1">—</td><td>Auditoria da pagina + velocity diaria da demo</td></tr>
-  <tr><td><b>Made in Brazil Sale</b></td><td>13–17 fev (anual)</td><td id="cd2">—</td><td>Relatorio por publisher + comparativo de desconto</td></tr>
+  <tr><td><b>Steam Next Fest · Out 2026</b></td><td>19–26 out 2026</td><td id="cd1">—</td><td>Auditoria da página + velocity diaria da demo</td></tr>
+  <tr><td><b>Made in Brazil Sale</b></td><td>13–17 fev (anual)</td><td id="cd2">—</td><td>Relatório por publisher + comparativo de desconto</td></tr>
   <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table>
   <div class="sectionhead rv" id="conta"><h2>Conta e cobranca</h2><span id="planline">plano e trial</span></div>
   <div class="toolbar">
@@ -500,20 +505,20 @@ app.get("/", (req: any, res: any) => {
   <div id="pixbox" style="display:none" class="card rv"><div class="pad">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
     <div><span class="pxnum">CHECKOUT</span><h3 style="margin:10px 0 2px">Pro · 30 dias · <span style="color:var(--neon)">R$ 99,00</span></h3>
-    <span class="meta">Pix copia e cola · libera em ate 1 dia util · sem fidelidade</span></div>
+    <span class="meta">Pix copia e cola · libera em até 1 dia util · sem fidelidade</span></div>
     <div id="paysteps" style="display:flex;gap:6px"><span class="pill">1 COPIAR</span><span class="pill">2 PAGAR</span><span class="pill">3 JA PAGUEI</span></div>
   </div>
   <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;margin-top:12px;align-items:start" id="pixgrid">
     <div style="background:#fff;padding:10px;border:3px solid #000;box-shadow:4px 4px 0 #000"><img id="pixqr" width="196" height="196" alt="QR Pix" style="display:block;width:100%"/></div>
     <div><p style="color:#8f98a0;font-size:12px;margin:0 0 6px">PASSO 1 — COPIE O CODIGO NO APP DO BANCO (OU LEIA O QR)</p>
     <textarea id="pixcode" rows="4" readonly style="width:100%;background:#05080f;color:#d9f99d;border:3px solid #2a3a55;font-size:11px"></textarea>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost small" onclick="copyPix()">Copiar codigo</button>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost small" onclick="copyPix()">Copiar código</button>
     <button class="btn primary small" onclick="markPaid(this)">JA PAGUEI · R$ 99</button></div>
     <p id="pixstatus" style="font-size:12px"></p></div>
   </div></div></div>
-  <div class="sectionhead rv"><h2>Relatorio e integracao</h2><span>o que o publisher encaminha no Slack</span></div>
+  <div class="sectionhead rv"><h2>Relatório e integracao</h2><span>o que o publisher encaminha no Slack</span></div>
   <div class="toolbar">
-    <button class="btn ghost" onclick="window.open('/api/report.md','_blank')">Relatorio semanal (Markdown)</button>
+    <button class="btn ghost" onclick="window.open('/api/report.md','_blank')">Relatório semanal (Markdown)</button>
     <button class="btn ghost" onclick="csv()">Baixar CSV</button>
     <input id="wh" placeholder="Webhook Discord https://discord.com/api/webhooks/..." style="min-width:300px;flex:1"/>
     <button class="btn" onclick="saveWh()">Salvar webhook</button>
@@ -524,19 +529,20 @@ app.get("/", (req: any, res: any) => {
     <button class="btn ghost" onclick="bulk()">Importar em lote</button>
   </div>
   <div class="sectionhead rv"><h2>Linha do tempo de alertas</h2><span>severidade, jogo e horario · clique para filtrar</span></div>
-  <div class="toolbar"><button class="chip on" onclick="afilter('all',this)">Todos</button><button class="chip" onclick="afilter('review-bomb',this)">Criticos</button><button class="chip" onclick="afilter('price',this)">Preco</button><button class="chip" onclick="afilter('rating',this)">Avaliacao</button></div>
+  <div class="toolbar"><button class="chip on" onclick="afilter('all',this)">Todos</button><button class="chip" onclick="afilter('review-bomb',this)">Críticos</button><button class="chip" onclick="afilter('price',this)">Preço</button><button class="chip" onclick="afilter('rating',this)">Avaliação</button></div>
   <div id="alerts">${alerts.map((a) => `<div class="alert ${a.kind === "review-bomb" ? "bomb" : a.kind === "price" ? "price" : a.kind === "rating" ? "price" : "ok"}" data-k="${a.kind}"><span style="color:#8f98a0">${iconFor(a.kind)}</span><span style="flex:1">${sevFor(a.kind)} <b>${a.text.split(":")[0]}</b>: ${a.text.split(":").slice(1).join(":")}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleString("pt-BR")} · App ${a.appId} · <a href="https://store.steampowered.com/app/${a.appId}" target="_blank" rel="noopener">abrir na Steam</a></small></span></div>`).join("") || "<p style=color:#8f98a0>Sem alertas no periodo. A coleta gera o primeiro ponto.</p>"}</div>
   <div class="sectionhead rv"><h2>Metodologia</h2><span>como calculamos, sem caixa-preta</span></div>
   <table><tr><th>Metrica</th><th>Fonte</th><th>Regra do alerta</th></tr>
-  <tr><td>Preco e desconto (BRL)</td><td>store.steampowered.com/api/appdetails (cc=BR)</td><td>qualquer mudanca de preco ou de % off</td></tr>
-  <tr><td>Reviews e aprovacao</td><td>appreviews + query_summary</td><td>+5 reviews no ciclo ou variacao de 2pp com 20+ reviews</td></tr>
-  <tr><td>Review-bomb</td><td>ultimas 20 reviews, timestamp 24h</td><td>3+ negativas em 24h</td></tr>
-  <tr><td>Velocity</td><td>historico local de 8 coletas</td><td>media diaria, sem projecao inventada</td></tr></table>
-  <div class="footer"><span>Publisher Radar · build 0.5.0</span><span>Imagens e precos: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a> · <a href="#" onclick="delme();return false">excluir minha conta</a></span></div>
+  <tr><td>Preço e desconto (BRL)</td><td>store.steampowered.com/api/appdetails (cc=BR)</td><td>qualquer mudança de preço ou de % off</td></tr>
+  <tr><td>Reviews e aprovacao</td><td>appreviews + query_summary</td><td>+5 reviews no ciclo ou variação de 2pp com 20+ reviews</td></tr>
+  <tr><td>Review-bomb</td><td>últimas 20 reviews, timestamp 24h</td><td>3+ negativas em 24h</td></tr>
+  <tr><td>Velocity</td><td>histórico local de 8 coletas</td><td>media diaria, sem projeção inventada</td></tr></table>
+  <div class="footer"><span>Publisher Radar · build 0.5.0</span><span>Imagens e preços: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a> · <a href="#" onclick="delme();return false">excluir minha conta</a></span></div>
   <script>
-  window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(b){b.style.display='block';b.textContent='ERRO NA PAGINA: '+(e.message||'desconhecido')+' — tire um print e mande ao suporte.';}});
+  window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(b){b.style.display='block';b.textContent='ERRO NA PÁGINA: '+(e.message||'desconhecido')+' — tire um print e mande ao suporte.';}});
+  function toast(m,k){var w=document.getElementById('toasts');if(!w)return;var t=document.createElement('div');t.className='toast '+(k||'');t.textContent=m;w.appendChild(t);setTimeout(function(){t.classList.add('out');setTimeout(function(){t.remove()},320)},4200);}
   async function diag(el){var box=document.getElementById('diagbox');box.style.display='block';box.textContent='Testando...';var L=[];
-    L.push('cookies: '+(document.cookie?'presentes':'AUSENTES (login nao vai grudar)')+', fetch: '+(typeof fetch==='function'?'ok':'AUSENTE')+', Chart: '+(typeof Chart==='function'?'ok':'falhou (graficos quebrados, botoes ok)'));
+    L.push('cookies: '+(document.cookie?'presentes':'AUSENTES (login não vai grudar)')+', fetch: '+(typeof fetch==='function'?'ok':'AUSENTE')+', Chart: '+(typeof Chart==='function'?'ok':'falhou (graficos quebrados, botoes ok)'));
     try{var m=await fetch('/api/auth/me').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('sessao: HTTP '+m.s+' '+(m.j.email||m.j.error||''));}catch(e){L.push('sessao: FALHA DE REDE '+e);}
     try{var g=await fetch('/api/games').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('jogos: HTTP '+g.s+' total='+(Array.isArray(g.j)?g.j.length:JSON.stringify(g.j).slice(0,80)));}catch(e){L.push('jogos: FALHA DE REDE '+e);}
     try{var t0=Date.now();var k=await fetch('/api/check/557040').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('steam: HTTP '+k.s+' em '+(Date.now()-t0)+'ms '+(k.j.name||k.j.error||''));}catch(e){L.push('steam: FALHA DE REDE '+e);}
@@ -546,86 +552,87 @@ app.get("/", (req: any, res: any) => {
     setTimeout(function(){document.querySelectorAll('#grid .card').forEach(function(c){var mine=c.getAttribute('data-mine')==='1';c.style.display=(m===0||(m===1&&mine)||(m===2&&!mine))?'':'none';});g.classList.remove('fading');showline();},160);}
   function afilter(k,el){[...el.parentElement.children].forEach(c=>c.classList.remove('on'));el.classList.add('on');
     document.querySelectorAll('#alerts .alert').forEach(a=>{a.style.display=(k==='all'||a.getAttribute('data-k')===k)?'':'none';});}
-  async function needLogin(r){if(r.status===401){alert('Sessao expirada. Faca login de novo.');location.href='/login';return true;}return false;}
+  async function needLogin(r){if(r.status===401){toast('Sessão expirada. Faça login de novo.','err');setTimeout(function(){location.href='/login'},1400);return true;}return false;}
   async function addGame(el){const appId=document.getElementById('appid').value.trim();const label=document.getElementById('lbl').value.trim();
-    if(!appId)return alert('Digite o AppID (so numeros, ex 557040)');if(el){el.textContent='Adicionando...';el.disabled=true;}const r=await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));alert('Falha: '+(e.error||r.status));if(el){el.textContent='+ Adicionar';el.disabled=false;}return;}location.reload();}
-  async function seedDemo(el){if(el){el.textContent='Carregando...';el.disabled=true;}const r=await fetch('/api/games/seed',{method:'POST'});if(await needLogin(r))return;if(!r.ok){alert('Falha ao carregar demo');if(el){el.textContent='CARREGAR 3 JOGOS DEMO';el.disabled=false;}return;}location.reload();}
-  async function removeGame(appId,el){if(!confirm('Remover App '+appId+' do monitoramento?'))return;if(el){el.textContent='...';el.disabled=true;}const r=await fetch('/api/games/'+appId,{method:'DELETE'});if(await needLogin(r))return;if(!r.ok){alert('Falha ao remover');if(el){el.textContent='Remover';el.disabled=false;}return;}location.reload();}
-  async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;alert('Falha: '+(e.error||r.status));return;}}catch(e){b.textContent='Recheck';b.disabled=false;alert('Falha de rede. Tente de novo.');return;}location.reload();}
-  async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'});if(await needLogin(r))return;const j=await r.json().catch(()=>null);alert(j&&j.result?j.result.join(String.fromCharCode(10)):'Coleta concluida');}catch(e){alert('Falha de rede. Tente de novo.');}location.reload();}
+    if(!appId){toast('Digite o AppID (só números, ex 557040)','warn');return;}if(el){el.textContent='Adicionando...';el.disabled=true;}const r=await fetch('/api/games',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appId,mine:true,label})});if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));toast('Falha: '+(e.error||r.status),'err');if(el){el.textContent='+ Adicionar';el.disabled=false;}return;}toast('Jogo adicionado. Coletando dados da Steam...','ok');setTimeout(function(){location.reload()},1400);}
+  async function seedDemo(el){if(el){el.textContent='Carregando...';el.disabled=true;}const r=await fetch('/api/games/seed',{method:'POST'});if(await needLogin(r))return;if(!r.ok){toast('Falha ao carregar demo','err');if(el){el.textContent='CARREGAR 3 JOGOS DEMO';el.disabled=false;}return;}toast('Demos carregados. Coletando dados...','ok');setTimeout(function(){location.reload()},1400);}
+  async function removeGame(appId,el){if(!confirm('Remover App '+appId+' do monitoramento?'))return;if(el){el.textContent='...';el.disabled=true;}const r=await fetch('/api/games/'+appId,{method:'DELETE'});if(await needLogin(r))return;if(!r.ok){toast('Falha ao remover','err');if(el){el.textContent='Remover';el.disabled=false;}return;}toast('Removido.','ok');setTimeout(function(){location.reload()},900);}
+  async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;toast('Falha: '+(e.error||r.status),'err');return;}}catch(e){b.textContent='Recheck';b.disabled=false;toast('Falha de rede. Tente de novo.','err');return;}toast('Coleta atualizada.','ok');setTimeout(function(){location.reload()},900);}
+  async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'});if(await needLogin(r))return;const j=await r.json().catch(()=>null);toast(j&&j.result?j.result.join(String.fromCharCode(10)):'Coleta concluída','ok');setTimeout(function(){location.reload()},1800);}catch(e){toast('Falha de rede. Tente de novo.','err');b.textContent='Coletar agora';b.disabled=false;}}
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
-  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){alert(r.error);return;}const el=document.getElementById('planline');var t='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mes';if(r.pendingPro)t+=' · PAGAMENTO EM CONFERENCIA';if(el)el.textContent=t;alert(t);}
-  async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());alert((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
-  async function showPix(el){var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando codigo...';try{var r=await fetch('/api/billing/pix').then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · vale por 30 dias de Pro.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
-  function copyPix(){var ta=document.getElementById('pixcode');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}alert('Codigo Pix copiado.');}
+  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){toast(r.error,'err');return;}const el=document.getElementById('planline');var t='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mês';if(r.pendingPro)t+=' · PAGAMENTO EM CONFERÊNCIA';if(el)el.textContent=t;toast(t,'ok');}
+  async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());toast((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
+  async function showPix(el){var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando código...';try{var r=await fetch('/api/billing/pix').then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · vale por 30 dias de Pro.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
+  function copyPix(){var ta=document.getElementById('pixcode');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}toast('Código Pix copiado.','ok');}
   async function markPaid(el){el.disabled=true;el.textContent='Enviando...';var r=await fetch('/api/billing/paid',{method:'POST'}).then(x=>x.json());document.getElementById('pixstatus').textContent=r.status||'ok';el.textContent='JA PAGUEI';el.disabled=false;plan();}
-  async function saveKey(){const v=document.getElementById('swkey').value.trim();await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});alert('Key salva. Use Testar wishlist real.');}
-  async function checkWish(){const g=await fetch('/api/games').then(x=>x.json());const appId=(g[0]&&g[0].appId)||'557040';const r=await fetch('/api/wishlist/'+appId).then(x=>x.json());alert(r.configured===false?'Sem key: usando reviews como proxy.':JSON.stringify(r).slice(0,300));}
-  async function showAudit(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Analisando pagina...';if(el)el.disabled=true;try{const r=await fetch('/api/audit/'+appId).then(x=>x.json());
+  async function saveKey(){const v=document.getElementById('swkey').value.trim();const r=await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});if(await needLogin(r))return;toast('Key salva. Use Testar wishlist real.','ok');}
+  async function checkWish(){const g=await fetch('/api/games').then(x=>x.json());const appId=(g[0]&&g[0].appId)||'557040';const r=await fetch('/api/wishlist/'+appId).then(x=>x.json());toast(r.configured===false?'Sem key: usando reviews como proxy.':JSON.stringify(r).slice(0,300),r.configured===false?'warn':'ok');}
+  async function showAudit(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Analisando página...';if(el)el.disabled=true;try{const r=await fetch('/api/audit/'+appId).then(x=>x.json());
     if(r.error){box.textContent=r.error;return;}
-    box.innerHTML='<b>Auditoria '+r.score+'/100</b> · desc '+r.shortLen+' chars · '+r.shots+' shots · '+r.trailers+' trailer(s)<br/>'+(r.issues.length?r.issues.map(i=>'− '+i).join('<br/>'):'Sem problemas criticos.');}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
+    box.innerHTML='<b>Auditoria '+r.score+'/100</b> · desc '+r.shortLen+' chars · '+r.shots+' shots · '+r.trailers+' trailer(s)<br/>'+(r.issues.length?r.issues.map(i=>'− '+i).join('<br/>'):'Sem problemas críticos.');}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
   async function showForecast(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Calculando...';if(el)el.disabled=true;try{const r=await fetch('/api/forecast/'+appId).then(x=>x.json());
     if(r.error){box.textContent=r.error;return;}
-    box.innerHTML='<b>'+r.band+'</b>'+(r.next?'<br/>Faltam cerca de <b>'+r.need+'</b> avaliacoes positivas seguidas para chegar a <b>'+r.next+'</b>.':'<br/>Sem projecao (base pequena ou topo da escala).');}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
+    box.innerHTML='<b>'+r.band+'</b>'+(r.next?'<br/>Faltam cerca de <b>'+r.need+'</b> avaliações positivas seguidas para chegar a <b>'+r.next+'</b>.':'<br/>Sem projeção (base pequena ou topo da escala).');}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
   async function showReply(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Buscando reviews...';if(el)el.disabled=true;try{const r=await fetch('/api/reply/'+appId).then(x=>x.json());
     if(!r.draft){box.textContent='Sem reviews recentes para rascunhar.';return;}
     box.innerHTML='<b>Rascunho PT:</b> '+r.draft.pt+'<br/><br/><b>Draft EN:</b> '+r.draft.en+'<br/><button class="btn ghost small" style="margin-top:6px" onclick="navigator.clipboard.writeText(this.parentElement.innerText);this.textContent=&quot;Copiado&quot;">Copiar</button>';}catch(e){box.textContent='Falha de rede. Tente de novo.';}finally{if(el)el.disabled=false;}}
-  async function saveWh(){const v=document.getElementById('wh').value.trim();await fetch('/api/config/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:v})});alert('Webhook salvo. Use Testar alerta.');}
+  async function saveWh(){const v=document.getElementById('wh').value.trim();if(!v){toast('Cole a URL do webhook primeiro.','warn');return;}const r=await fetch('/api/config/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:v})});if(await needLogin(r))return;toast('Webhook salvo. Use Testar alerta.','ok');}
   async function testWh(){const r=await fetch('/api/discord/test',{method:'POST'}).then(x=>x.json());
-    if(r.ok&&!r.simulated){alert('Alerta de teste enviado ao Discord.');}
-    else if(r.ok){alert('Sem webhook salvo: registrado apenas no log do servidor.');}
-    else{alert('Falha: '+(r.error||'verifique o webhook'));}}
-  async function bulk(){const t=document.getElementById('bulk').value;if(!t)return alert('Cole ao menos um AppID ou URL');const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})}).then(x=>x.json());alert(r.added+' jogo(s) adicionado(s).');location.reload();}
-  function cd(id,iso){const el=document.getElementById(id);if(!el)return;const d=Math.ceil((new Date(iso)-Date.now())/86400000);el.textContent=d>0?('faltam '+d+' dias'):(d===0?'comeca hoje':'em andamento ou encerrado');}
+    if(r.ok&&!r.simulated){toast('Alerta de teste enviado ao Discord.','ok');}
+    else if(r.ok){toast('Sem webhook salvo: registrado apenas no log do servidor.','warn');}
+    else{toast('Falha: '+(r.error||'verifique o webhook'),'err');}}
+  async function bulk(){const t=document.getElementById('bulk').value;if(!t){toast('Cole ao menos um AppID ou URL','warn');return;}const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});if(await needLogin(r))return;const j=await r.json().catch(()=>({added:0}));toast(j.added+' jogo(s) adicionado(s). Coletando dados...','ok');setTimeout(function(){location.reload()},1400);}
+  function cd(id,iso){const el=document.getElementById(id);if(!el)return;const d=Math.ceil((new Date(iso)-Date.now())/86400000);el.textContent=d>0?('faltam '+d+' dias'):(d===0?'começa hoje':'em andamento ou encerrado');}
+  document.querySelectorAll('.kpi b').forEach(function(b){var m=b.textContent.match(/^([\d.]+)/);if(!m)return;var target=parseInt(m[1].replace(/\./g,''),10);if(!target||target<20)return;var t0=performance.now();function fr(t){var p=Math.min(1,(t-t0)/900);var v=Math.round(target*(1-Math.pow(1-p,3)));b.childNodes[0].nodeValue=v.toLocaleString('pt-BR');if(p<1)requestAnimationFrame(fr);}requestAnimationFrame(fr);});
   cd('cd1','2026-10-19T10:00:00-03:00');cd('cd2','2027-02-13T10:00:00-03:00');showline();
   </script>${pxScript}</div></body></html>`);
 });
 
 app.get("/landing", (req: any, res: any) => {
-  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Publisher Radar — R$ 99/mes</title><style>${css}</style>${pxHead}</head><body>${pxBody}
+  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Publisher Radar — R$ 99/mês</title><style>${css}</style>${pxHead}</head><body>${pxBody}
   <div class="topbar"><div class="wrap"><span>Monitoramento de portfolio Steam para publishers</span><span style="margin-left:auto">PT-BR · Suporte WhatsApp · Sem fidelidade</span></div></div>
-  <div class="ticker"><span class="track">WISHLIST VELOCITY <b>+++</b> REVIEW-BOMB ALERT <b>+++</b> PRECO EM BRL <b>+++</b> NEXT FEST 19–26 OUT <b>+++</b> MADE IN BRAZIL SALE <b>+++</b> RELATORIO SEMANAL <b>+++</b> WISHLIST VELOCITY <b>+++</b> REVIEW-BOMB ALERT <b>+++</b> PRECO EM BRL <b>+++</b> NEXT FEST 19–26 OUT <b>+++</b>&nbsp;</span></div>
+  <div class="ticker"><span class="track">WISHLIST VELOCITY <b>+++</b> REVIEW-BOMB ALERT <b>+++</b> PREÇO EM BRL <b>+++</b> NEXT FEST 19–26 OUT <b>+++</b> MADE IN BRAZIL SALE <b>+++</b> RELATÓRIO SEMANAL <b>+++</b> WISHLIST VELOCITY <b>+++</b> REVIEW-BOMB ALERT <b>+++</b> PREÇO EM BRL <b>+++</b> NEXT FEST 19–26 OUT <b>+++</b>&nbsp;</span></div>
   <div class="wrap">
   <div class="nav"><div class="logo">${svg.radar}</div><span class="px-title">PUBLISHER RADAR<span class="cursor"></span></span><span style="margin-left:auto"></span><a class="btn ghost" href="/login">Entrar</a> <a class="btn primary" href="/">Abrir painel demo</a></div>
   <p class="insert">— INSERT COIN · PARA PUBLISHERS COM 5+ JOGOS NA STEAM —</p>
-  <h1 class="h1px">A promo do concorrente<br/>vende o <span class="hl">fim de semana.</span><br/>Voce descobre na segunda.</h1>
-  <p style="color:#c7d5e0;font-size:17px;max-width:760px">Alerta no Discord a cada 6h com preco em BRL, base de reviews, variacao de aprovacao e pico de jogadores. Sem planilha, sem painel abandonado.</p>
+  <h1 class="h1px">A promo do concorrente<br/>vende o <span class="hl">fim de semana.</span><br/>Você descobre na segunda.</h1>
+  <p style="color:#c7d5e0;font-size:17px;max-width:760px">Alerta no Discord a cada 6h com preço em BRL, base de reviews, variação de aprovacao e pico de jogadores. Sem planilha, sem painel abandonado.</p>
   <div class="hero">
     <div class="discord"><b># alertas-steam</b> <span class="live"><span class="dot"></span>bot online</span>
-      <div class="msg"><b>Radar BOT</b> <small style="color:#8f98a0">hoje as 09:12</small><div class="embed"><b>Atomic Picnic — variacao relevante de avaliacao</b><br/><span style="color:#c7d5e0">4 negativas em 24h · aprovacao 78% para 74% · 564 reviews totais</span><br/><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1903560/header.jpg" width="100%" style="border-radius:8px;margin-top:8px" alt="Atomic Picnic"/><br/><a href="https://store.steampowered.com/app/1903560">Abrir na Steam</a> <span style="color:#8f98a0">·</span> <a href="/">Ver comparativo</a></div></div>
-      <div class="msg"><b>Radar BOT</b> <small style="color:#8f98a0">hoje as 09:14</small><div class="embed"><b>99Vidas — entrada em promocao</b><br/><span style="color:#c7d5e0">R$ 29,99 para <b>R$ 5,99 (-80%)</b> · +12 reviews no dia</span><br/><a href="https://store.steampowered.com/app/557040">Abrir na Steam</a></div></div>
+      <div class="msg"><b>Radar BOT</b> <small style="color:#8f98a0">hoje as 09:12</small><div class="embed"><b>Atomic Picnic — variação relevante de avaliação</b><br/><span style="color:#c7d5e0">4 negativas em 24h · aprovacao 78% para 74% · 564 reviews totais</span><br/><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1903560/header.jpg" width="100%" style="border-radius:8px;margin-top:8px" alt="Atomic Picnic"/><br/><a href="https://store.steampowered.com/app/1903560">Abrir na Steam</a> <span style="color:#8f98a0">·</span> <a href="/">Ver comparativo</a></div></div>
+      <div class="msg"><b>Radar BOT</b> <small style="color:#8f98a0">hoje as 09:14</small><div class="embed"><b>99Vidas — entrada em promoção</b><br/><span style="color:#c7d5e0">R$ 29,99 para <b>R$ 5,99 (-80%)</b> · +12 reviews no dia</span><br/><a href="https://store.steampowered.com/app/557040">Abrir na Steam</a></div></div>
     </div>
     <div>
-      <div class="kpi"><b>R$ 99<span style="font-size:14px;color:#8f98a0">/mes</span></b><span>Ate 30 jogos · Pix ou cartao · cancele quando quiser</span><br/><small style="color:#8f98a0">Piloto de 7 dias com seus jogos ja cadastrados. Sem cartao.</small></div>
-      <div class="step" style="margin-top:12px"><b>Entrega semanal no Discord</b><p style="color:#c7d5e0;font-size:14px;margin:8px 0 0">Velocity diaria por jogo · Previsao de nota (faltam X positivas) · Rascunho de resposta PT/EN · Auditoria da pagina 0-100 · Calendario Next Fest/Sale · Relatorio semanal em Markdown/CSV.</p>
+      <div class="kpi"><b>R$ 99<span style="font-size:14px;color:#8f98a0">/mês</span></b><span>Até 30 jogos · Pix ou cartão · cancele quando quiser</span><br/><small style="color:#8f98a0">Piloto de 7 dias com seus jogos já cadastrados. Sem cartão.</small></div>
+      <div class="step" style="margin-top:12px"><b>Entrega semanal no Discord</b><p style="color:#c7d5e0;font-size:14px;margin:8px 0 0">Velocity diaria por jogo · Previsao de nota (faltam X positivas) · Rascunho de resposta PT/EN · Auditoria da página 0-100 · Calendario Next Fest/Sale · Relatório semanal em Markdown/CSV.</p>
       <p style="margin:12px 0 0"><a class="btn" href="mailto:contato@publisherradar.com.br?subject=Piloto%207%20dias%20Publisher%20Radar">Solicitar piloto de 7 dias</a></p>
-      <p style="color:#8f98a0;font-size:12px">Exemplo de piloto: 99Vidas (QUByte), Atomic Picnic (BitCake) e Sportia (Hermit Crab) ja monitorados.</p></div>
+      <p style="color:#8f98a0;font-size:12px">Exemplo de piloto: 99Vidas (QUByte), Atomic Picnic (BitCake) e Sportia (Hermit Crab) já monitorados.</p></div>
     </div>
   </div>
   <div class="sectionhead rv"><span class="pxnum">01</span><h2>Como funciona</h2><span>3 passos, 2 minutos</span></div>
   <div class="steps">
     <div class="step rise"><b class="num">1</b><p><b>Conecte o Discord</b><br/><span style="color:#8f98a0">Crie um webhook no canal #alertas-steam e cole na configuracao. Nenhum acesso a conta Steam.</span></p></div>
-    <div class="step rise" style="animation-delay:80ms"><b class="num">2</b><p><b>Cadastre AppIDs</b><br/><span style="color:#8f98a0">Seus jogos + 5 concorrentes por jogo. Importamos preco, reviews e players na hora.</span></p></div>
-    <div class="step rise" style="animation-delay:160ms"><b class="num">3</b><p><b>Receba e aja</b><br/><span style="color:#8f98a0">Alerta com severidade, link direto e comparativo. Historico completo no painel.</span></p></div>
+    <div class="step rise" style="animation-delay:80ms"><b class="num">2</b><p><b>Cadastre AppIDs</b><br/><span style="color:#8f98a0">Seus jogos + 5 concorrentes por jogo. Importamos preço, reviews e players na hora.</span></p></div>
+    <div class="step rise" style="animation-delay:160ms"><b class="num">3</b><p><b>Receba e aja</b><br/><span style="color:#8f98a0">Alerta com severidade, link direto e comparativo. Histórico completo no painel.</span></p></div>
   </div>
-  <div class="sectionhead rv"><span class="pxnum">02</span><h2>Feito para quem publica volume</h2><span>3 exemplos reais ja no piloto</span></div>
+  <div class="sectionhead rv"><span class="pxnum">02</span><h2>Feito para quem publica volume</h2><span>3 exemplos reais já no piloto</span></div>
   <table><tr><th>Jogo</th><th>Publisher</th><th>Uso no piloto</th></tr>
-  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/557040/capsule_184x69.jpg" style="border-radius:6px" alt="99Vidas"/></td><td><b>QUByte</b><br/><span style="color:#8f98a0">59 jogos e 40 demos</span></td><td>Acompanhar promocoes e erosao de avaliacao em catalogo grande</td></tr>
+  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/557040/capsule_184x69.jpg" style="border-radius:6px" alt="99Vidas"/></td><td><b>QUByte</b><br/><span style="color:#8f98a0">59 jogos e 40 demos</span></td><td>Acompanhar promocoes e erosao de avaliação em catalogo grande</td></tr>
   <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1903560/capsule_184x69.jpg" style="border-radius:6px" alt="Atomic Picnic"/></td><td><b>BitCake</b><br/><span style="color:#8f98a0">Multiplayer + Sale com 1.000 jogos</span></td><td>Medir velocity durante a Made in Brazil Sale e detectar pico pos-patch</td></tr>
-  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/3897390/capsule_184x69.jpg" style="border-radius:6px" alt="Sportia"/></td><td><b>Hermit Crab</b><br/><span style="color:#8f98a0">Sportia em pre-lancamento</span></td><td>Baseline de reviews zerado e alerta do primeiro movimento</td></tr></table>
+  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/3897390/capsule_184x69.jpg" style="border-radius:6px" alt="Sportia"/></td><td><b>Hermit Crab</b><br/><span style="color:#8f98a0">Sportia em pre-lançamento</span></td><td>Baseline de reviews zerado e alerta do primeiro movimento</td></tr></table>
   <div class="sectionhead rv"><span class="pxnum">03</span><h2>Comparativo honesto</h2><span>quando usar cada um</span></div>
-  <table><tr><th>Ferramenta</th><th>Preco</th><th>Forte</th><th>Limite para publisher BR</th></tr>
+  <table><tr><th>Ferramenta</th><th>Preço</th><th>Forte</th><th>Limite para publisher BR</th></tr>
   <tr><td>SteamDB</td><td>Gratis</td><td>Dado bruto exato</td><td>Sem alerta, sem comparativo, exige abrir todo dia</td></tr>
-  <tr><td>VG Insights / Sensor Tower</td><td>Enterprise</td><td>Estimativa + console</td><td>Preco sob consulta, em ingles, excesso para 30 jogos</td></tr>
-  <tr><td>Wishlist Engine</td><td>US$ 15/mes</td><td>Velocity + audit</td><td>Em ingles, sem review-bomb em PT, sem Sale BR</td></tr>
-  <tr><td><b>Publisher Radar</b></td><td><b>R$ 99/mes</b></td><td><b>Alerta no Discord em PT</b></td><td>Foco Steam PC; wishlist privada exige chave Steamworks</td></tr></table>
+  <tr><td>VG Insights / Sensor Tower</td><td>Enterprise</td><td>Estimativa + console</td><td>Preço sob consulta, em inglês, excesso para 30 jogos</td></tr>
+  <tr><td>Wishlist Engine</td><td>US$ 15/mês</td><td>Velocity + audit</td><td>Em inglês, sem review-bomb em PT, sem Sale BR</td></tr>
+  <tr><td><b>Publisher Radar</b></td><td><b>R$ 99/mês</b></td><td><b>Alerta no Discord em PT</b></td><td>Foco Steam PC; wishlist privada exige chave Steamworks</td></tr></table>
   <div class="sectionhead rv"><h2>Perguntas frequentes</h2></div>
-  <p><b>De onde vem o dado?</b><br/><span style="color:#8f98a0">API publica da Steam (appdetails cc=BR, appreviews, players). Coleta a cada 6h, historico no painel. Wishlist privada so com chave financeira Steamworks do dono — ativamos no piloto se voce fornecer.</span></p>
-  <p><b>Preciso instalar algo na Steam?</b><br/><span style="color:#8f98a0">Nao. Somente AppIDs publicos + webhook do Discord. Nenhuma senha.</span></p>
-  <p><b>O que acontece no review-bomb?</b><br/><span style="color:#8f98a0">Alerta CRITICO com as ultimas negativas, link direto e rascunho de resposta em PT/EN para o community manager.</span></p>
-  <div class="footer"><span>Publisher Radar · Imagens, precos e marcas: Valve/Steam, uso descritivo</span><span style="margin-left:auto"><a href="/">Painel</a> · <a href="/api/export.csv">CSV de exemplo</a></span></div>
+  <p><b>De onde vem o dado?</b><br/><span style="color:#8f98a0">API publica da Steam (appdetails cc=BR, appreviews, players). Coleta a cada 6h, histórico no painel. Wishlist privada so com chave financeira Steamworks do dono — ativamos no piloto se você fornecer.</span></p>
+  <p><b>Preciso instalar algo na Steam?</b><br/><span style="color:#8f98a0">Não. Somente AppIDs publicos + webhook do Discord. Nenhuma senha.</span></p>
+  <p><b>O que acontece no review-bomb?</b><br/><span style="color:#8f98a0">Alerta CRITICO com as últimas negativas, link direto e rascunho de resposta em PT/EN para o community manager.</span></p>
+  <div class="footer"><span>Publisher Radar · Imagens, preços e marcas: Valve/Steam, uso descritivo</span><span style="margin-left:auto"><a href="/">Painel</a> · <a href="/api/export.csv">CSV de exemplo</a></span></div>
   ${pxScript}</div></body></html>`);
 });
 
@@ -637,7 +644,7 @@ app.post("/api/games", (req: any, res: any) => {
     const raw = req.body?.appId ?? req.body?.url ?? "";
     const parsed = parseAppId(String(raw)) ?? String(raw).trim();
     const { mine, label } = req.body ?? {};
-    if (!parsed) return res.status(400).json({ error: "appId ou URL Steam obrigatorio" });
+    if (!parsed) return res.status(400).json({ error: "appId ou URL Steam obrigatório" });
     const g = storage.addGame(U(req), parsed, mine !== false, String(label ?? ""));
     collectSoon(U(req), [g.appId]);
     res.json(g);
@@ -709,16 +716,16 @@ app.get("/api/reply/:appId", async (req, res) => {
 app.get("/api/report.md", (req: any, res: any) => {
   if (!uidOf(req)) {
     if (String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
-    return res.status(401).json({ error: "nao logado — abra /login" });
+    return res.status(401).json({ error: "não logado — abra /login" });
   }
   const uid = U(req);
   const games = storage.listGames(uid);
   const alerts = storage.listAlerts(uid).slice(0, 20);
-  const L: string[] = [`# Publisher Radar — relatorio semanal`, ``, `Gerado em ${new Date().toLocaleString("pt-BR")}`, ``, `## Portfolio`];
+  const L: string[] = [`# Publisher Radar — relatório semanal`, ``, `Gerado em ${new Date().toLocaleString("pt-BR")}`, ``, `## Portfolio`];
   for (const g of games) {
     const s = storage.lastSnapshot(U(req),g.appId);
     const f = s ? scoreForecast(s.totalReviews, s.positivePct) : null;
-    L.push(``, `### ${g.label || s?.name || g.appId}`, `- Steam: https://store.steampowered.com/app/${g.appId}`, `- Preco: R$ ${s?.priceBRL ?? "—"} (${s?.discountPct ?? 0}% off) · ${s?.totalReviews ?? 0} reviews, ${s?.positivePct ?? 0}% aprovacao`, `- Faixa: ${f?.band ?? "—"}${f?.next ? ` · faltam ~${f.need} positivas seguidas para ${f.next}` : ""}`, `- Auditoria da pagina: ${s?.audit ?? "—"}/100${s?.auditIssues?.[0] ? ` — ${s.auditIssues[0]}` : ""}`);
+    L.push(``, `### ${g.label || s?.name || g.appId}`, `- Steam: https://store.steampowered.com/app/${g.appId}`, `- Preço: R$ ${s?.priceBRL ?? "—"} (${s?.discountPct ?? 0}% off) · ${s?.totalReviews ?? 0} reviews, ${s?.positivePct ?? 0}% aprovacao`, `- Faixa: ${f?.band ?? "—"}${f?.next ? ` · faltam ~${f.need} positivas seguidas para ${f.next}` : ""}`, `- Auditoria da página: ${s?.audit ?? "—"}/100${s?.auditIssues?.[0] ? ` — ${s.auditIssues[0]}` : ""}`);
   }
   L.push(``, `## Alertas recentes`);
   for (const a of alerts) L.push(`- [${a.kind}] ${a.text} (${a.at.slice(0, 10)})`);
@@ -728,7 +735,7 @@ app.get("/api/report.md", (req: any, res: any) => {
 
 app.delete("/api/games/:appId", (req, res) => {
   const ok = storage.removeGame(U(req), req.params.appId);
-  if (!ok) return res.status(404).json({ error: "jogo nao estava monitorado" });
+  if (!ok) return res.status(404).json({ error: "jogo não estava monitorado" });
   res.json({ ok: true });
 });
 
@@ -750,7 +757,7 @@ app.get("/api/alerts", (req: any, res: any) => res.json(storage.listAlerts(U(req
 app.get("/api/export.csv", (req: any, res: any) => {
   if (!uidOf(req)) {
     if (String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
-    return res.status(401).json({ error: "nao logado — abra /login" });
+    return res.status(401).json({ error: "não logado — abra /login" });
   }
   const uid = U(req);
   const games = storage.listGames(uid);
@@ -781,18 +788,18 @@ app.post("/api/worker", async (req: any, res: any) => {
         const changes: { text: string; kind: string }[] = [];
         if (!prev) changes.push({ text: `Primeira coleta: R$ ${cur.priceBRL}`, kind: "auto" });
         else {
-          if ((prev.priceBRL ?? null) !== (cur.priceBRL ?? null)) changes.push({ text: `Preco R$ ${prev.priceBRL} para R$ ${cur.priceBRL} (${cur.discountPct}% off)`, kind: "price" });
+          if ((prev.priceBRL ?? null) !== (cur.priceBRL ?? null)) changes.push({ text: `Preço R$ ${prev.priceBRL} para R$ ${cur.priceBRL} (${cur.discountPct}% off)`, kind: "price" });
           const d = cur.totalReviews - prev.totalReviews;
           if (d >= 5) changes.push({ text: `Mais ${d} reviews no ciclo`, kind: "auto" });
-          if (Math.abs(cur.positivePct - prev.positivePct) >= 2 && cur.totalReviews > 20) changes.push({ text: `Aprovacao ${prev.positivePct}% para ${cur.positivePct}%`, kind: "rating" });
+          if (Math.abs(cur.positivePct - prev.positivePct) >= 2 && cur.totalReviews > 20) changes.push({ text: `Aprovação ${prev.positivePct}% para ${cur.positivePct}%`, kind: "rating" });
         }
         try {
           const neg = await fneg(g.appId, 1);
-          if (neg >= 3) changes.push({ text: `${neg} avaliacoes negativas nas ultimas 24h`, kind: "review-bomb" });
+          if (neg >= 3) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
         } catch {}
         for (const c of changes) storage.pushAlert(requester, { appId: g.appId, kind: c.kind, text: `${cur.name}: ${c.text}` });
         if (changes.length) await sendE(requester, cur, changes.map((c) => c.text));
-        out.push(`${cur.name}: ${changes.length ? changes.length + " mudanca(s)" : "sem novidades"}`);
+        out.push(`${cur.name}: ${changes.length ? changes.length + " mudança(s)" : "sem novidades"}`);
       } catch (e) {
         out.push(`${g.appId}: ${e instanceof Error ? e.message : "falha"}`);
       }

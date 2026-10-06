@@ -115,7 +115,7 @@ function trialLeft(u: User): number {
 export const storage = {
   register(email: string, pass: string): { user: User; token: string } {
     const clean = email.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error("email invalido");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error("email inválido");
     if (pass.length < 6) throw new Error("senha minima de 6 caracteres");
     const db = load();
     if (db.users.find((u) => u.email === clean)) throw new Error("email ja cadastrado — faca login");
@@ -141,8 +141,8 @@ export const storage = {
     const clean = email.trim().toLowerCase();
     const db = load();
     const user = db.users.find((u) => u.email === clean);
-    if (!user || !user.passHash) throw new Error("login invalido");
-    if (!checkPass(pass, user.salt, user.passHash)) throw new Error("login invalido");
+    if (!user || !user.passHash) throw new Error("login inválido");
+    if (!checkPass(pass, user.salt, user.passHash)) throw new Error("login inválido");
     const token = newToken();
     db.sessions.push({ token, userId: user.id, createdAt: new Date().toISOString() });
     db.sessions = db.sessions.slice(-200);
@@ -219,7 +219,7 @@ export const storage = {
     const db = load();
     const d = ud(db, userId);
     const clean = appId.trim();
-    if (!/^\d+$/.test(clean)) throw new Error("appId invalido, use so numeros");
+    if (!/^\d+$/.test(clean)) throw new Error("appId inválido, use só números");
     if (d.games.length >= 30) throw new Error("limite de 30 jogos no plano piloto");
     const ex = d.games.find((g) => g.appId === clean);
     if (!ex) {

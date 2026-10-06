@@ -26,7 +26,7 @@ async function runUser(userId: string): Promise<string[]> {
       }
       try {
         const neg = await fetchRecentNegatives(g.appId, 1);
-        if (neg >= 3) changes.push({ text: `${neg} avaliacoes negativas nas ultimas 24h`, kind: "review-bomb" });
+        if (neg >= 3) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
       } catch {}
       for (const c of changes) storage.pushAlert(userId, { appId: g.appId, kind: c.kind, text: `${cur.name}: ${c.text}` });
       if (changes.length) await sendRadarEmbed(userId, cur, changes.map((c) => c.text));
