@@ -391,13 +391,7 @@ function iconFor(kind: string): string {
 
 function cardHtml(u: string, g: any, i: number): string {
   const s = storage.lastSnapshot(u, g.appId);
-  const hist = storage.historyFor(u, g.appId, 30);
-  const labels = hist.map((h) => `'${h.fetchedAt.slice(5, 10)}'`).join(",");
-  const rev = hist.map((h) => h.totalReviews).join(",");
   const vel = velocity(u, g.appId);
-  const id = `ch${g.appId}`;
-  const idp = `ph${g.appId}`;
-  const prices = hist.map((h) => h.priceBRL ?? 0).join(",");
   const pos = s?.positivePct ?? 0;
   return `<div class="card rise" style="animation-delay:${Math.min(i * 80, 400)}ms" data-mine="${g.mine ? 1 : 0}">
     <div class="coverwrap">
@@ -413,13 +407,9 @@ function cardHtml(u: string, g: any, i: number): string {
         <span style="font-size:12px;color:#8f98a0">App ${g.appId}</span>
       </div>
       <div class="meta"><span style="font-size:20px;font-weight:800;color:#fff">${s?.priceBRL != null ? `R$ ${s.priceBRL.toFixed(2)}` : "A anunciar"}</span>
-      <span>${s?.totalReviews ?? 0} reviews</span><span>${s?.ccu ?? 0} online</span><span>Vel. ${vel}/dia</span></div>
-      <div class="meta"><span>Aprovacao ${pos}%</span></div>
+      <span>${s?.totalReviews ?? 0} reviews</span><span>${s?.ccu ?? 0} online</span></div>
+      <div class="meta"><span>Aprovacao ${pos}%</span><span style="margin-left:auto">Vel. ${vel}/dia</span></div>
       <div class="bar"><i style="width:${pos}%"></i></div>
-      <div class="meta"><span>Reviews · 30 dias</span><span style="margin-left:auto">Vel. ${vel}/dia</span></div>
-      <div style="position:relative;height:96px">${hist.length > 1 ? `<canvas id="${id}"></canvas>` : `<div style="height:96px;display:flex;align-items:center;color:#5b6b85;font-size:12px">Sem historico — clique em Recheck ou Coletar agora.</div>`}</div>
-      <div class="meta" style="margin-top:6px"><span>Preco BRL · 30 dias</span>${s?.discountPct ? `<span style="color:#fbbf24">-${s.discountPct}% agora</span>` : ""}</div>
-      <div style="position:relative;height:52px">${hist.length > 1 ? `<canvas id="${idp}"></canvas>` : `<div style="height:52px"></div>`}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <a href="https://store.steampowered.com/app/${g.appId}" target="_blank" rel="noopener">Abrir na Steam ${svg.ext}</a>
         <span style="display:flex;gap:6px"><button class="btn ghost small" onclick="recheck('${g.appId}',this)">Recheck</button>
@@ -432,10 +422,6 @@ function cardHtml(u: string, g: any, i: number): string {
       </div>
       <div id="x-${g.appId}" style="margin-top:8px;font-size:12px;color:#c7d5e0"></div>
     </div>
-    <script>(function(){var a=document.getElementById("${id}"),b=document.getElementById("${idp}");if(!a||!b)return;if(typeof Chart==="undefined"){a.outerHTML='<div style="height:96px;display:flex;align-items:center;color:#fca5a5;font-size:12px">Grafico indisponivel (CDN bloqueada). Os numeros acima estao atualizados.</div>';return;}
-    var base={responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:"easeOutQuart"},plugins:{legend:{display:false}}};
-    new Chart(a,{type:"line",data:{labels:[${labels}],datasets:[{label:"reviews",data:[${rev}],borderColor:"#66c0f4",backgroundColor:"rgba(102,192,244,.14)",fill:true,tension:.35,pointRadius:0,borderWidth:2}]},options:Object.assign({},base,{plugins:{legend:{display:false},tooltip:{callbacks:{title:function(i){return "Dia "+i[0].label}}},scales:{x:{display:false},y:{grid:{color:"#1e2632"},ticks:{color:"#8f98a0",maxTicksLimit:4,precision:0}}}})});
-    new Chart(b,{type:"line",data:{labels:[${labels}],datasets:[{label:"R$",data:[${prices}],borderColor:"#fbbf24",backgroundColor:"rgba(251,191,36,.12)",fill:true,stepped:true,pointRadius:0,borderWidth:2}]},options:Object.assign({},base,{plugins:{legend:{display:false},tooltip:{callbacks:{label:function(i){return "R$ "+i.parsed.y}}}},scales:{x:{display:false},y:{grid:{color:"#1e2632"},ticks:{color:"#8f98a0",maxTicksLimit:3,callback:function(v){return "R$"+v}}}}})});})();</script>
   </div>`;
 }
 
@@ -465,7 +451,7 @@ app.get("/", (req: any, res: any) => {
     return `<tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appId}/capsule_184x69.jpg" width="120" style="border-radius:6px" loading="lazy" alt="capsule"/></td><td><b>${g.label}</b><br/><span style="color:#8f98a0">App ${g.appId} · ${g.mine ? "Portfolio" : "Concorrente"}</span></td><td>${s?.priceBRL != null ? `R$ ${s.priceBRL.toFixed(2)}` : "—"}</td><td>${s?.discountPct ?? 0}%</td><td>${s?.totalReviews ?? 0}</td><td><div style="min-width:110px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#8f98a0"><span>${s?.positivePct ?? 0}%</span></div><div class="bar"><i style="width:${s?.positivePct ?? 0}%"></i></div></div></td><td>+${velocity(U(req), g.appId)}/dia</td></tr>`;
   }).join("");
   res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Publisher Radar — painel do portfolio</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script><style>${css}</style>${pxHead}</head><body>${pxBody}
+  <style>${css}</style>${pxHead}</head><body>${pxBody}
   <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
   <div class="wrap">
   <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · ultima sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
