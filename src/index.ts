@@ -573,6 +573,7 @@ tbody tr:hover{background:#16203a}
 .embed{border-left:4px solid #5865f2;background:#232428;padding:12px;margin-top:8px}
 .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:26px;align-items:start;margin-top:22px}
 @media(max-width:900px){.hero{grid-template-columns:1fr}}
+@media(max-width:640px){#pixgrid{grid-template-columns:1fr !important}.wrap{padding-left:16px;padding-right:16px}table{font-size:12px}th,td{padding:8px}}
 .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:20px 0}
 .step{background:var(--panel);border:3px solid var(--line);padding:18px;box-shadow:5px 5px 0 #000;transition:transform .18s}
 .step:hover{transform:translate(-2px,-2px)}
@@ -769,7 +770,7 @@ app.get("/", (req: any, res: any) => {
   <div class="sectionhead rv"><h2>Linha do tempo de alertas</h2><span>severidade, jogo e horário · clique para filtrar</span></div>
   <div class="card"><div class="pad"><b>COMO FUNCIONA</b>
   <p style="color:#c7d5e0;font-size:13px;margin:8px 0">A cada coleta (manual ou automática a cada 6h), comparamos com a coleta anterior. Só vira alerta o que passou da régua — jogo estável não gera ruído.</p>
-  <table><tr><th>Tipo</th><th>Régua</th><th>Receber</th></tr>
+  <div class="tblwrap"><table><tr><th>Tipo</th><th>Régua</th><th>Receber</th></tr>
   <tr><td><b>Preço</b></td><td>qualquer mudança de preço ou % off</td><td><button class="btn ghost small" id="pf-price" onclick="pref('price',this)">...</button></td></tr>
   <tr><td><b>Avaliação</b></td><td>aprovação varia 2pp+ (20+ reviews) ou auditoria &lt; 70</td><td><button class="btn ghost small" id="pf-rating" onclick="pref('rating',this)">...</button></td></tr>
   <tr><td><b>Review-bomb</b></td><td>3+ negativas em 24h</td><td><button class="btn ghost small" id="pf-bomb" onclick="pref('bomb',this)">...</button></td></tr>
@@ -778,11 +779,11 @@ app.get("/", (req: any, res: any) => {
   <div id="alerts">${alerts.map((a) => `<div class="alert ${a.kind === "review-bomb" ? "bomb" : a.kind === "price" ? "price" : a.kind === "rating" ? "price" : "ok"}" data-k="${a.kind}"><span style="color:#8f98a0">${iconFor(a.kind)}</span><span style="flex:1">${sevFor(a.kind)} <b>${a.text.split(":")[0]}</b>: ${a.text.split(":").slice(1).join(":")}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleString("pt-BR")} · App ${a.appId} · <a href="https://store.steampowered.com/app/${a.appId}" target="_blank" rel="noopener">abrir na Steam</a></small></span></div>`).join("") || `<div class="card"><div class="pad"><b>Nenhum alerta ainda.</b><p style="color:#8f98a0">Alertas nascem a cada coleta (preço, reviews, review-bomb). Rode a primeira agora.</p><button class="btn primary" onclick="runWorker(this)">COLETAR AGORA</button></div></div>`}</div>
   </div>
   <div class="sectionhead rv"><h2>Metodologia</h2><span>como calculamos, sem caixa-preta</span></div>
-  <table><tr><th>Métrica</th><th>Fonte</th><th>Regra do alerta</th></tr>
+  <div class="tblwrap"><table><tr><th>Métrica</th><th>Fonte</th><th>Regra do alerta</th></tr>
   <tr><td>Preço e desconto (BRL)</td><td>store.steampowered.com/api/appdetails (cc=BR)</td><td>qualquer mudança de preço ou de % off</td></tr>
   <tr><td>Reviews e aprovação</td><td>appreviews + query_summary</td><td>+5 reviews no ciclo ou variação de 2pp com 20+ reviews</td></tr>
   <tr><td>Review-bomb</td><td>últimas 20 reviews, timestamp 24h</td><td>3+ negativas em 24h</td></tr>
-  <tr><td>Velocity</td><td>histórico local de 8 coletas</td><td>média diária, sem projeção inventada</td></tr></table>
+  <tr><td>Velocity</td><td>histórico local de 8 coletas</td><td>média diária, sem projeção inventada</td></tr></table></div>
   <div class="footer"><span>Publisher Radar 87 · build 0.6.0</span><span>Imagens e preços: Valve/Steam (uso descritivo)</span><span style="margin-left:auto"><a href="/landing">Oferta</a> · <a href="/api/games">API</a> · <a href="/api/export.csv">CSV</a> · <a href="#" onclick="delme();return false">excluir minha conta</a></span></div>
   <script>
   window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(b){b.style.display='block';b.textContent='ERRO NA PÁGINA: '+(e.message||'desconhecido')+' — tire um print e mande ao suporte.';}});
@@ -894,16 +895,16 @@ app.get("/landing", (req: any, res: any) => {
     <div class="step rise" style="animation-delay:160ms"><b class="num">3</b><p><b>Receba e aja</b><br/><span style="color:#8f98a0">Alerta com severidade, link direto e comparativo. Histórico completo no painel.</span></p></div>
   </div>
   <div class="sectionhead rv"><span class="pxnum">02</span><h2>Feito para quem publica volume</h2><span>3 exemplos reais já no piloto</span></div>
-  <table><tr><th>Jogo</th><th>Publisher</th><th>Uso no piloto</th></tr>
+  <div class="tblwrap"><table><tr><th>Jogo</th><th>Publisher</th><th>Uso no piloto</th></tr>
   <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/557040/capsule_184x69.jpg" style="border-radius:6px" alt="99Vidas"/></td><td><b>QUByte</b><br/><span style="color:#8f98a0">59 jogos e 40 demos</span></td><td>Acompanhar promoções e erosão de avaliação em catalogo grande</td></tr>
   <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1903560/capsule_184x69.jpg" style="border-radius:6px" alt="Atomic Picnic"/></td><td><b>BitCake</b><br/><span style="color:#8f98a0">Multiplayer + Sale com 1.000 jogos</span></td><td>Medir velocity durante a Made in Brazil Sale e detectar pico pos-patch</td></tr>
-  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/3897390/capsule_184x69.jpg" style="border-radius:6px" alt="Sportia"/></td><td><b>Hermit Crab</b><br/><span style="color:#8f98a0">Sportia em pre-lançamento</span></td><td>Baseline de reviews zerado e alerta do primeiro movimento</td></tr></table>
+  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/3897390/capsule_184x69.jpg" style="border-radius:6px" alt="Sportia"/></td><td><b>Hermit Crab</b><br/><span style="color:#8f98a0">Sportia em pre-lançamento</span></td><td>Baseline de reviews zerado e alerta do primeiro movimento</td></tr></table></div>
   <div class="sectionhead rv"><span class="pxnum">03</span><h2>Comparativo honesto</h2><span>quando usar cada um</span></div>
-  <table><tr><th>Ferramenta</th><th>Preço</th><th>Forte</th><th>Limite para publisher BR</th></tr>
+  <div class="tblwrap"><table><tr><th>Ferramenta</th><th>Preço</th><th>Forte</th><th>Limite para publisher BR</th></tr>
   <tr><td>SteamDB</td><td>Grátis</td><td>Dado bruto exato</td><td>Sem alerta, sem comparativo, exige abrir todo dia</td></tr>
   <tr><td>VG Insights / Sensor Tower</td><td>Enterprise</td><td>Estimativa + console</td><td>Preço sob consulta, em inglês, excesso para 30 jogos</td></tr>
   <tr><td>Wishlist Engine</td><td>US$ 15/mês</td><td>Velocity + audit</td><td>Em inglês, sem review-bomb em PT, sem Sale BR</td></tr>
-  <tr><td><b>Publisher Radar 87</b></td><td><b>R$ 99/mês</b></td><td><b>Alerta no Discord em PT</b></td><td>Foco Steam PC; wishlist privada exige chave Steamworks</td></tr></table>
+  <tr><td><b>Publisher Radar 87</b></td><td><b>R$ 99/mês</b></td><td><b>Alerta no Discord em PT</b></td><td>Foco Steam PC; wishlist privada exige chave Steamworks</td></tr></table></div>
   <div class="sectionhead rv"><h2>Perguntas frequentes</h2></div>
   <p><b>De onde vem o dado?</b><br/><span style="color:#8f98a0">API pública da Steam (appdetails cc=BR, appreviews, players). Coleta a cada 6h, histórico no painel. Wishlist privada só com chave financeira Steamworks do dono — ativamos no piloto se você fornecer.</span></p>
   <p><b>Preciso instalar algo na Steam?</b><br/><span style="color:#8f98a0">Não. Somente AppIDs públicos + webhook do Discord. Nenhuma senha.</span></p>
