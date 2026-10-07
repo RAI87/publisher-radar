@@ -20,13 +20,20 @@ async function call(method: string, path: string, body?: any): Promise<any> {
   return res.json();
 }
 
-const { users } = await call("GET", "/api/internal/users");
-if (!users.length) console.log("Nenhum usuário. Crie conta em /login primeiro.");
-for (const uid of users) {
-  try {
-    const r = await call("POST", "/api/internal/collect", { userId: uid });
-    for (const line of r.result ?? []) console.log(uid + " / " + line);
-  } catch (e) {
-    console.log(uid + ": " + (e instanceof Error ? e.message : "falha"));
+console.log("worker start " + WEB_URL);
+
+try {
+  const { users } = await call("GET", "/api/internal/users");
+  if (!users.length) console.log("Nenhum usuário. Crie conta em /login primeiro.");
+  for (const uid of users) {
+    try {
+      const r = await call("POST", "/api/internal/collect", { userId: uid });
+      for (const line of r.result ?? []) console.log(uid + " / " + line);
+    } catch (e) {
+      console.log(uid + ": " + (e instanceof Error ? e.message : "falha"));
+    }
   }
+} catch (e) {
+  console.log("worker falhou (tenta de novo no proximo ciclo): " + (e instanceof Error ? e.message : e));
 }
+process.exit(0);
