@@ -116,8 +116,8 @@ app.get("/login", (req: any, res: any) => {
   </style></head><body>${pxBody}<div class="loginwrap rise" id="lw">
   <div style="text-align:center;margin-bottom:18px"><img src="/logo.png" alt="Publisher Radar 87" style="width:120px;image-rendering:pixelated;border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"/></div>
   <div class="px-title" style="font-size:17px">PUBLISHER RADAR 87<span class="cursor"></span></div>
-  <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
-  <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias grátis e 3 jogos demo. Sem cartão.</p>
+  <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div>
+  <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000;margin-top:18px"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias grátis e 3 jogos demo. Sem cartão.</p>
   <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="publisher@studio.com" autocomplete="email"/></div>
   <div class="field"><label>SENHA · MIN 6</label><input id="pass" type="password" placeholder="••••••" autocomplete="current-password"/></div>
   <button class="btn primary" style="width:100%;justify-content:center" id="bIn" onclick="go('login',this)">ENTRAR NO PAINEL</button>
@@ -345,7 +345,7 @@ html{scroll-behavior:smooth}
 body{font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);margin:0;font-size:14px;overflow-x:hidden}
 .px{font-family:'Press Start 2P',monospace}
 a{color:var(--blue);text-decoration:none}
-#pxbg{position:fixed;inset:0;z-index:0;opacity:.9}
+#pxbg{position:fixed;inset:0;z-index:0;opacity:.9;pointer-events:none}
 .scan{position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
 .vig{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% -10%,rgba(102,192,244,.10),transparent 55%),radial-gradient(ellipse at 50% 110%,rgba(74,222,128,.07),transparent 55%)}
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px;position:relative;z-index:2}
