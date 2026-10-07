@@ -1,7 +1,7 @@
 import express from "express";
 import { readFileSync, writeFileSync } from "node:fs";
 import { storage } from "./storage.js";
-import { parseCookies } from "./auth.js";
+import { parseCookies, newToken } from "./auth.js";
 import { fetchSnapshot, fetchRecentReviews, scoreForecast, draftReply, parseAppId } from "./steam.js";
 import { diffSnapshots } from "./alerting.js";
 import { pixCode, pixAmount, pixKey } from "./pix.js";
@@ -117,12 +117,20 @@ app.get("/login", (req: any, res: any) => {
   <div style="text-align:center;margin-bottom:18px"><img src="/logo.png" alt="Publisher Radar 87" style="width:120px;image-rendering:pixelated;border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"/>
   <div class="px-title" style="font-size:17px;margin-top:12px">PUBLISHER RADAR 87<span class="cursor"></span></div>
   <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
-  <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000;margin-top:18px"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias grátis e 3 jogos demo. Sem cartão.</p>
+  <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000;margin-top:18px"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Entre com sua conta. Novos usuários ganham 7 dias grátis.</p>
+  <button class="btn ghost" id="bGoogle" style="width:100%;justify-content:center;display:none" onclick="location.href='/api/auth/google'"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.7 3.5 2.7.2.1c2.2-2 3.8-5 3.8-9.5z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.7.1-2.7 2.1-.1.7C3.7 21.3 7.5 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.7-2.7-2.1-.7.3C.6 9.3 0 10.6 0 12s.6 2.7 1.7 3.9l3.5-1.5z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.7 2.7 1.7 7.1l3.5 2.7c1-2.9 3.7-5.1 6.8-5.1z"/></svg> ENTRAR COM GOOGLE</button>
   <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="publisher@studio.com" autocomplete="email"/></div>
   <div class="field"><label>SENHA · MIN 6</label><input id="pass" type="password" placeholder="••••••" autocomplete="current-password"/></div>
   <button class="btn primary" style="width:100%;justify-content:center" id="bIn" onclick="go('login',this)">ENTRAR NO PAINEL</button>
-  <button class="btn ghost" style="width:100%;justify-content:center;margin-top:10px" id="bUp" onclick="go('register',this)">CRIAR CONTA PILOTO</button>
+  <button class="btn ghost" style="width:100%;justify-content:center;margin-top:10px" id="bUp" onclick="go('register',this)">CRIAR CONTA GRÁTIS</button>
   <p id="msg" style="color:#fca5a5;min-height:18px"></p>
+  <p style="font-size:12px"><a href="#" id="forgotLink" onclick="showForgot();return false">Esqueci a senha</a></p>
+  <div id="forgotBox" style="display:none"><div class="field"><label>EMAIL DA CONTA</label><input id="femail" type="email" placeholder="publisher@studio.com"/></div>
+  <button class="btn ghost" style="width:100%;justify-content:center" onclick="sendForgot(this)">ENVIAR LINK</button>
+  <p id="fmsg" style="font-size:12px;color:#8f98a0"></p></div>
+  <div id="resetBox" style="display:none"><div class="field"><label>NOVA SENHA · MIN 6</label><input id="npass" type="password" placeholder="••••••"/></div>
+  <button class="btn primary" style="width:100%;justify-content:center" onclick="sendReset(this)">DEFINIR NOVA SENHA</button>
+  <p id="nmsg" style="font-size:12px;color:#8f98a0"></p></div>
   <p style="color:#8f98a0;font-size:12px">Novo por aqui? <a href="/landing">Ver oferta R$ 99/mês</a></p></div>
   <p style="text-align:center;color:#5b6b85;font-size:11px">PRESS START · dados via Steam API oficial</p></div>
   <script>async function go(a,el){var msg=document.getElementById('msg');msg.textContent='';
@@ -131,7 +139,13 @@ app.get("/login", (req: any, res: any) => {
     el.disabled=true;var old=el.textContent;el.textContent='CARREGANDO...';
     try{var r=await fetch('/api/auth/'+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,pass:pass})}).then(function(x){return x.json()});
     if(r.error){msg.textContent=r.error;el.disabled=false;el.textContent=old;document.getElementById('lw').classList.add('shake');setTimeout(function(){document.getElementById('lw').classList.remove('shake')},350);return;}
-    document.getElementById('lw').classList.add('out');setTimeout(function(){location.href='/'},380);}catch(e){msg.textContent='Falha de rede. Tente de novo.';el.disabled=false;el.textContent=old;}}</script>${pxScript}</body></html>`);
+    document.getElementById('lw').classList.add('out');setTimeout(function(){location.href='/'},380);}catch(e){msg.textContent='Falha de rede. Tente de novo.';el.disabled=false;el.textContent=old;}}
+  function showForgot(){var b=document.getElementById('forgotBox');b.style.display=b.style.display==='none'?'block':'none';}
+  async function sendForgot(el){el.disabled=true;var m=document.getElementById('fmsg');m.textContent='Enviando...';try{await fetch('/api/auth/forgot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('femail').value})});m.textContent='Se este email existe, enviamos o link (vale 1 hora). Sem email configurado? Chame no WhatsApp.';}catch(e){m.textContent='Falha de rede. Tente de novo.';}el.disabled=false;}
+  async function sendReset(el){el.disabled=true;var m=document.getElementById('nmsg');try{var r=await fetch('/api/auth/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:resetToken,pass:document.getElementById('npass').value})}).then(function(x){return x.json()});if(r.error){m.textContent=r.error;el.disabled=false;return;}m.textContent='Senha definida. Voltando ao login...';setTimeout(function(){location.href='/login'},1500);}catch(e){m.textContent='Falha de rede.';el.disabled=false;}}
+  var resetToken=new URLSearchParams(location.search).get('reset')||'';
+  if(resetToken){document.getElementById('resetBox').style.display='block';}
+  fetch('/api/auth/config').then(function(x){return x.json()}).then(function(c){if(c.google)document.getElementById('bGoogle').style.display='';}).catch(function(){});</script>${pxScript}</body></html>`);
 });
 
 app.post("/api/auth/register", (req, res) => {
@@ -178,6 +192,125 @@ app.get("/api/auth/me", (req, res) => {
   const me = token ? storage.me(token) : null;
   if (!me) return res.status(401).json({ error: "não logado" });
   res.json({ email: me.email, plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true });
+});
+
+app.get("/api/auth/config", (_req, res) => {
+  res.json({
+    google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    emailReset: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)
+  });
+});
+
+function appOrigin(req: any): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  const proto = String(req.headers["x-forwarded-proto"] || "http").split(",")[0];
+  return `${proto}://${req.headers.host}`;
+}
+
+const oauthStates = new Map<string, number>();
+
+app.get("/api/auth/google", (req, res) => {
+  const id = process.env.GOOGLE_CLIENT_ID || "";
+  if (!id) return res.status(501).json({ error: "login Google em ativação" });
+  const st = newToken();
+  oauthStates.set(st, Date.now());
+  const redirect = `${appOrigin(req)}/api/auth/google/callback`;
+  const url = "https://accounts.google.com/o/oauth2/v2/auth?" + new URLSearchParams({
+    client_id: id,
+    redirect_uri: redirect,
+    response_type: "code",
+    scope: "openid email profile",
+    state: st,
+    prompt: "select_account"
+  }).toString();
+  res.redirect(url);
+});
+
+app.get("/api/auth/google/callback", async (req, res) => {
+  try {
+    const { code, state } = req.query as any;
+    const ts = oauthStates.get(String(state || ""));
+    oauthStates.delete(String(state || ""));
+    if (!code || !ts || Date.now() - ts > 10 * 60 * 1000) return res.redirect("/login?err=oauth");
+    const redirect = `${appOrigin(req)}/api/auth/google/callback`;
+    const tk = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code: String(code),
+        client_id: process.env.GOOGLE_CLIENT_ID || "",
+        client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+        redirect_uri: redirect,
+        grant_type: "authorization_code"
+      }).toString()
+    });
+    if (!tk.ok) return res.redirect("/login?err=oauth");
+    const tj: any = await tk.json();
+    const ui = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: { Authorization: `Bearer ${tj.access_token}` }
+    });
+    if (!ui.ok) return res.redirect("/login?err=oauth");
+    const profile: any = await ui.json();
+    if (!profile.sub || !profile.email) return res.redirect("/login?err=oauth");
+    const { user, token, created } = storage.findOrCreateGoogle(String(profile.sub), String(profile.email));
+    if (created) {
+      storage.seedDemo(user.id);
+      try {
+        const { fetchSnapshot: fs } = await import("./steam.js");
+        for (const g of storage.listGames(user.id)) {
+          if (!storage.lastSnapshot(user.id, g.appId)) {
+            fs(g.appId).then((s) => storage.pushSnapshot(user.id, s)).catch(() => {});
+          }
+        }
+      } catch {}
+    }
+    setSession(res, token);
+    res.redirect("/");
+  } catch {
+    res.redirect("/login?err=oauth");
+  }
+});
+
+async function sendResetEmail(to: string, link: string): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY || "";
+  const from = process.env.EMAIL_FROM || "";
+  if (!key || !from) return false;
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to, subject: "Redefinir senha — Publisher Radar 87", html: `<p>Para criar uma nova senha, abra este link (vale 1 hora):</p><p><a href="${link}">${link}</a></p>` })
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+app.post("/api/auth/forgot", async (req, res) => {
+  try {
+    const { token } = storage.issueReset(String(req.body?.email ?? ""));
+    const link = `${appOrigin(req)}/login?reset=${token}`;
+    await sendResetEmail(String(req.body?.email ?? ""), link);
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
+  }
+});
+
+app.post("/api/auth/reset", (req, res) => {
+  try {
+    storage.consumeReset(String(req.body?.token ?? ""), String(req.body?.pass ?? ""));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : "link inválido" });
+  }
+});
+
+app.post("/api/auth/admin-pass", (req, res) => {
+  if ((req.body?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey inválida" });
+  const ok = storage.adminSetPass(String(req.body?.email ?? ""), String(req.body?.pass ?? ""));
+  res.json({ ok });
 });
 
 export function buildId(): string {

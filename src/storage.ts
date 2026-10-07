@@ -24,6 +24,7 @@ export interface User {
   email: string;
   passHash: string;
   salt: string;
+  googleId: string | null;
   plan: "trial" | "starter" | "pro";
   pendingPro: boolean;
   wantPlan: string;
@@ -44,6 +45,7 @@ export interface UserData {
 interface DB {
   users: User[];
   sessions: { token: string; userId: string; createdAt: string }[];
+  resets: { token: string; userId: string; until: string }[];
   data: Record<string, UserData>;
 }
 
@@ -60,7 +62,7 @@ const sessionAlive = (iso: string): boolean =>
   Date.now() - new Date(iso).getTime() < SESSION_DAYS * 86400000;
 
 function load(): DB {
-  if (!existsSync(file)) return { users: [], sessions: [], data: {} };
+  if (!existsSync(file)) return { users: [], sessions: [], resets: [], data: {} };
   let raw: any;
   try {
     raw = JSON.parse(readFileSync(file, "utf8")) as any;
@@ -68,19 +70,27 @@ function load(): DB {
     try {
       copyFileSync(file, file + ".corrupt-" + Date.now() + ".json");
     } catch {}
-    return { users: [], sessions: [], data: {} };
+    return { users: [], sessions: [], resets: [], data: {} };
   }
   try {
     if (Array.isArray(raw.users)) {
-      return { users: raw.users, sessions: raw.sessions ?? [], data: raw.data ?? {} };
+      for (const u of raw.users) {
+        if (u.googleId === undefined) u.googleId = null;
+        if (u.pendingPro === undefined) u.pendingPro = false;
+        if (!u.wantPlan) u.wantPlan = "pro";
+        if (!u.wantPeriod) u.wantPeriod = "monthly";
+        if (u.proUntil === undefined) u.proUntil = null;
+      }
+      return { users: raw.users, sessions: raw.sessions ?? [], resets: raw.resets ?? [], data: raw.data ?? {} };
     }
-    const migrated: DB = { users: [], sessions: [], data: {} };
+    const migrated: DB = { users: [], sessions: [], resets: [], data: {} };
     const uid = "piloto";
     migrated.users.push({
       id: uid,
       email: "piloto@local",
       passHash: "",
       salt: "",
+      googleId: null,
       plan: "trial",
       pendingPro: false,
       wantPlan: "pro",
@@ -98,7 +108,7 @@ function load(): DB {
     };
     return migrated;
   } catch {
-    return { users: [], sessions: [], data: {} };
+    return { users: [], sessions: [], resets: [], data: {} };
   }
 }
 
@@ -122,15 +132,16 @@ export const storage = {
   register(email: string, pass: string): { user: User; token: string } {
     const clean = email.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) throw new Error("email inválido");
-    if (pass.length < 6) throw new Error("senha minima de 6 caracteres");
+    if (pass.length < 6) throw new Error("senha mínima de 6 caracteres");
     const db = load();
-    if (db.users.find((u) => u.email === clean)) throw new Error("email ja cadastrado — faca login");
+    if (db.users.find((u) => u.email === clean)) throw new Error("email já cadastrado — faça login");
     const { hash, salt } = hashPass(pass);
     const user: User = {
       id: "u" + Date.now().toString(36),
       email: clean,
       passHash: hash,
       salt,
+      googleId: null,
       plan: "trial",
       pendingPro: false,
       wantPlan: "pro",
@@ -162,6 +173,73 @@ export const storage = {
     const db = load();
     db.sessions = db.sessions.filter((s) => s.token !== token);
     save(db);
+  },
+  findOrCreateGoogle(googleId: string, email: string): { user: User; token: string; created: boolean } {
+    const clean = email.trim().toLowerCase();
+    const db = load();
+    let user = db.users.find((u) => u.googleId === googleId) ?? db.users.find((u) => u.email === clean);
+    let created = false;
+    if (!user) {
+      user = {
+        id: "u" + Date.now().toString(36),
+        email: clean,
+        passHash: "",
+        salt: "",
+        googleId,
+        plan: "trial",
+        pendingPro: false,
+        wantPlan: "pro",
+        wantPeriod: "monthly",
+        proUntil: null,
+        trialEnds: new Date(Date.now() + 7 * 86400000).toISOString(),
+        createdAt: new Date().toISOString()
+      };
+      db.users.push(user);
+      ud(db, user.id);
+      created = true;
+    } else if (!user.googleId) {
+      user.googleId = googleId;
+    }
+    const token = newToken();
+    db.sessions.push({ token, userId: user.id, createdAt: new Date().toISOString() });
+    db.sessions = db.sessions.slice(-500);
+    save(db);
+    return { user, token, created };
+  },
+  issueReset(email: string): { token: string; userId: string } {
+    const clean = email.trim().toLowerCase();
+    const db = load();
+    const user = db.users.find((u) => u.email === clean);
+    if (!user) throw new Error("se este email existe, enviamos o link");
+    const token = newToken();
+    db.resets.push({ token, userId: user.id, until: new Date(Date.now() + 3600000).toISOString() });
+    db.resets = db.resets.slice(-200);
+    save(db);
+    return { token, userId: user.id };
+  },
+  consumeReset(token: string, pass: string): void {
+    if (pass.length < 6) throw new Error("senha mínima de 6 caracteres");
+    const db = load();
+    const r = db.resets.find((x) => x.token === token);
+    if (!r || new Date(r.until).getTime() < Date.now()) throw new Error("link expirado — peça outro");
+    const user = db.users.find((x) => x.id === r.userId);
+    if (!user) throw new Error("conta não encontrada");
+    const { hash, salt } = hashPass(pass);
+    user.passHash = hash;
+    user.salt = salt;
+    db.resets = db.resets.filter((x) => x.token !== token);
+    save(db);
+  },
+  adminSetPass(email: string, pass: string): boolean {
+    if (pass.length < 6) return false;
+    const db = load();
+    const u = db.users.find((x) => x.email === email.trim().toLowerCase());
+    if (!u) return false;
+    const { hash, salt } = hashPass(pass);
+    u.passHash = hash;
+    u.salt = salt;
+    save(db);
+    return true;
   },
   deleteUser(userId: string): void {
     const db = load();
