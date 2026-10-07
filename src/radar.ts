@@ -4,11 +4,18 @@ const WEB_URL = (process.env.WEB_URL || "http://localhost:3020").replace(/\/$/, 
 const KEY = process.env.INTERNAL_KEY || process.env.ADMIN_KEY || "piloto123";
 
 async function call(method: string, path: string, body?: any): Promise<any> {
-  const res = await fetch(WEB_URL + path, {
-    method,
-    headers: { "Content-Type": "application/json", "x-internal-key": KEY },
-    body: body ? JSON.stringify(body) : undefined
-  });
+  let res: Response;
+  try {
+    res = await fetch(WEB_URL + path, {
+      method,
+      headers: { "Content-Type": "application/json", "x-internal-key": KEY },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch {
+    throw new Error("WEB_URL fora do ar (" + WEB_URL + ") — confira se o web fez deploy");
+  }
+  if (res.status === 401) throw new Error("web desatualizado (sem rotas /api/internal) — Redeploy no service web");
+  if (res.status === 403) throw new Error("INTERNAL_KEY diferente entre worker e web — iguale as variáveis");
   if (!res.ok) throw new Error(`HTTP ${res.status} em ${path}`);
   return res.json();
 }
