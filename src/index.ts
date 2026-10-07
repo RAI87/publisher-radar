@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { storage } from "./storage.js";
 import { parseCookies } from "./auth.js";
 import { fetchSnapshot, fetchRecentReviews, scoreForecast, draftReply, parseAppId } from "./steam.js";
+import { diffSnapshots } from "./alerting.js";
 import { pixCode, pixAmount, pixKey } from "./pix.js";
 import { sendDiscord } from "./discord.js";
 
@@ -599,7 +600,7 @@ app.get("/", (req: any, res: any) => {
   </div>
   <div class="sectionhead rv"><h2>Linha do tempo de alertas</h2><span>severidade, jogo e horario · clique para filtrar</span></div>
   <div class="toolbar"><button class="chip on" onclick="afilter('all',this)">Todos</button><button class="chip" onclick="afilter('review-bomb',this)">Críticos</button><button class="chip" onclick="afilter('price',this)">Preço</button><button class="chip" onclick="afilter('rating',this)">Avaliação</button></div>
-  <div id="alerts">${alerts.map((a) => `<div class="alert ${a.kind === "review-bomb" ? "bomb" : a.kind === "price" ? "price" : a.kind === "rating" ? "price" : "ok"}" data-k="${a.kind}"><span style="color:#8f98a0">${iconFor(a.kind)}</span><span style="flex:1">${sevFor(a.kind)} <b>${a.text.split(":")[0]}</b>: ${a.text.split(":").slice(1).join(":")}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleString("pt-BR")} · App ${a.appId} · <a href="https://store.steampowered.com/app/${a.appId}" target="_blank" rel="noopener">abrir na Steam</a></small></span></div>`).join("") || "<p style=color:#8f98a0>Sem alertas no período. A coleta gera o primeiro ponto.</p>"}</div>
+  <div id="alerts">${alerts.map((a) => `<div class="alert ${a.kind === "review-bomb" ? "bomb" : a.kind === "price" ? "price" : a.kind === "rating" ? "price" : "ok"}" data-k="${a.kind}"><span style="color:#8f98a0">${iconFor(a.kind)}</span><span style="flex:1">${sevFor(a.kind)} <b>${a.text.split(":")[0]}</b>: ${a.text.split(":").slice(1).join(":")}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleString("pt-BR")} · App ${a.appId} · <a href="https://store.steampowered.com/app/${a.appId}" target="_blank" rel="noopener">abrir na Steam</a></small></span></div>`).join("") || `<div class="card"><div class="pad"><b>Nenhum alerta ainda.</b><p style="color:#8f98a0">Alertas nascem a cada coleta (preço, reviews, review-bomb). Rode a primeira agora.</p><button class="btn primary" onclick="runWorker(this)">COLETAR AGORA</button></div></div>`}</div>
   <div class="sectionhead rv"><h2>Metodologia</h2><span>como calculamos, sem caixa-preta</span></div>
   <table><tr><th>Métrica</th><th>Fonte</th><th>Regra do alerta</th></tr>
   <tr><td>Preço e desconto (BRL)</td><td>store.steampowered.com/api/appdetails (cc=BR)</td><td>qualquer mudança de preço ou de % off</td></tr>
@@ -824,9 +825,12 @@ app.get("/api/check/:appId", async (req, res) => {
   try {
     const requester = U(req);
     if (!storage.trialOk(requester)) return res.status(402).json({ error: "trial expirado — ative o Pro para continuar coletando" });
+    const prev = storage.lastSnapshot(requester, req.params.appId);
     const s = await fetchSnapshot(req.params.appId);
     storage.pushSnapshot(requester, s);
-    res.json(s);
+    const changes = diffSnapshots(prev, s);
+    for (const c of changes) storage.pushAlert(requester, { appId: s.appId, kind: c.kind, text: `${s.name}: ${c.text}` });
+    res.json({ ...s, newAlerts: changes.length });
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : "erro" });
   }
@@ -866,14 +870,7 @@ app.post("/api/worker", async (req: any, res: any) => {
         const prev = storage.lastSnapshot(requester, g.appId);
         const cur = await fsnap(g.appId);
         storage.pushSnapshot(requester, cur);
-        const changes: { text: string; kind: string }[] = [];
-        if (!prev) changes.push({ text: `Primeira coleta: R$ ${cur.priceBRL}`, kind: "auto" });
-        else {
-          if ((prev.priceBRL ?? null) !== (cur.priceBRL ?? null)) changes.push({ text: `Preço R$ ${prev.priceBRL} para R$ ${cur.priceBRL} (${cur.discountPct}% off)`, kind: "price" });
-          const d = cur.totalReviews - prev.totalReviews;
-          if (d >= 5) changes.push({ text: `Mais ${d} reviews no ciclo`, kind: "auto" });
-          if (Math.abs(cur.positivePct - prev.positivePct) >= 2 && cur.totalReviews > 20) changes.push({ text: `Aprovação ${prev.positivePct}% para ${cur.positivePct}%`, kind: "rating" });
-        }
+        const changes = diffSnapshots(prev, cur);
         try {
           const neg = await fneg(g.appId, 1);
           if (neg >= 3) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
