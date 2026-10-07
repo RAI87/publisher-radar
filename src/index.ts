@@ -172,8 +172,12 @@ app.get("/api/auth/me", (req, res) => {
   res.json({ email: me.email, plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true });
 });
 
+export function buildId(): string {
+  return (process.env.RAILWAY_GIT_COMMIT_SHA || "").slice(0, 7) || ("v" + (process.env.npm_package_version || "0.5.0"));
+}
+
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, build: "0.5.0", now: new Date().toISOString(), dataDir: process.env.DATA_DIR || "(raiz do app)", steam: "api publica (sem key = proxy por reviews)" });
+  res.json({ ok: true, build: buildId(), now: new Date().toISOString(), dataDir: process.env.DATA_DIR || "(raiz do app)", steam: "api publica (sem key = proxy por reviews)" });
 });
 
 app.get("/api/billing", (req, res) => {
@@ -521,7 +525,7 @@ app.get("/", (req: any, res: any) => {
   }).join("");
   res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Publisher Radar 87 — painel do portfolio</title>
   <style>${css}</style>${pxHead}</head><body>${pxBody}
-  <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
+  <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · build ${buildId()} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
   <div class="wrap">
   <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR 87<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · última sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
   <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
