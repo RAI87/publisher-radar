@@ -131,7 +131,7 @@ app.get("/login", (req: any, res: any) => {
   <div id="resetBox" style="display:none"><div class="field"><label>NOVA SENHA · MIN 6</label><input id="npass" type="password" placeholder="••••••"/></div>
   <button class="btn primary" style="width:100%;justify-content:center" onclick="sendReset(this)">DEFINIR NOVA SENHA</button>
   <p id="nmsg" style="font-size:12px;color:#8f98a0"></p></div>
-  <p style="color:#8f98a0;font-size:12px">Novo por aqui? <a href="/landing">Ver oferta R$ 99/mês</a></p></div>
+  <p style="color:#8f98a0;font-size:12px">Novo por aqui? <a href="/landing">Ver planos</a></p></div>
   <p style="text-align:center;color:#5b6b85;font-size:11px">PRESS START · dados via Steam API oficial</p></div>
   <script>async function go(a,el){var msg=document.getElementById('msg');msg.textContent='';
     var email=document.getElementById('email').value.trim(),pass=document.getElementById('pass').value;
@@ -673,8 +673,8 @@ app.get("/", (req: any, res: any) => {
   <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · build ${buildId()} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
   <div class="wrap">
   <div class="nav"><img src="/logo.png" alt="Publisher Radar 87" style="height:34px;width:auto;image-rendering:pixelated"/><div><span class="px-title">PUBLISHER RADAR 87<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · última sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
-  <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
-  ${trialDead ? `<div class="alert bomb"><span style="color:#f87171">${svg.bell}</span><span><b> trial expirado.</b> Ative o Pro para continuar coletando. <a href="#conta">Ativar Pro · R$ 99 Pix</a></span></div>` : ""}
+  <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver planos</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
+  ${trialDead ? `<div class="alert bomb"><span style="color:#f87171">${svg.bell}</span><span><b> trial expirado.</b> Escolha um plano para continuar coletando. <a href="#conta">Ver planos</a></span></div>` : ""}
   <div class="toolbar" id="onboard">
     ${step(hasGames, "adicionar jogos")}${step(hasData, "rodar 1a coleta")}${step(hasWh, "conectar Discord")}
   </div>
