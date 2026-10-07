@@ -681,6 +681,12 @@ app.get("/", (req: any, res: any) => {
     <div class="kpi amber rise" style="animation-delay:120ms"><b>${promos}</b><span>Em promoção agora</span><br/><small>preço e desconto via Steam BR</small></div>
     <div class="kpi ${bombs ? "red" : "green"} rise" style="animation-delay:180ms"><b>${bombs}</b><span>Alertas críticos (24h)</span><br/><small>3+ negativas ou queda de 2pp</small></div>
   </div>
+  <div class="tabs" id="maintabs" style="margin:6px 0 4px">
+    <button class="chip on" data-t="portfolio" onclick="switchTab('portfolio',this)">Portfolio</button>
+    <button class="chip" data-t="alerts" onclick="switchTab('alerts',this)">Alertas</button>
+    <button class="chip" data-t="account" onclick="switchTab('account',this)">Conta e cobrança</button>
+  </div>
+  <div id="tab-portfolio">
   <div class="sectionhead rv"><h2>Portfolio e concorrentes</h2><span>${games.length} itens · ordenado por adicionado · capsule e preço reais da Steam</span></div>
   <div class="toolbar" id="filterbar">
     <button class="chip on" onclick="filter(0,this)">Todos (${games.length})</button>
@@ -704,6 +710,8 @@ app.get("/", (req: any, res: any) => {
   <tr><td><b>Steam Next Fest · Out 2026</b></td><td>19–26 out 2026</td><td id="cd1">—</td><td>Auditoria da página + velocity diária da demo</td></tr>
   <tr><td><b>Made in Brazil Sale</b></td><td>13–17 fev (anual)</td><td id="cd2">—</td><td>Relatório por publisher + comparativo de desconto</td></tr>
   <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table>
+  </div>
+  <div id="tab-account" style="display:none">
   <div class="sectionhead rv" id="conta"><h2>Conta e cobrança</h2><span id="planline">plano e trial</span></div>
   <div class="steps" id="plans">
     <div class="step"><b class="num">S</b><p><b>Starter · R$ 49/mês</b><br/><span style="color:#8f98a0">Até 10 jogos · alertas no Discord · ideal para solo.</span></p><button class="btn ghost small" onclick="showPix('starter','monthly',this)">PIX R$ 49</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('starter','monthly',this)">CARTÃO</button></div>
@@ -732,7 +740,7 @@ app.get("/", (req: any, res: any) => {
     <button class="btn primary small" onclick="markPaid(this)">JÁ PAGUEI</button></div>
     <p id="pixstatus" style="font-size:12px"></p></div>
   </div></div></div>
-  <div class="sectionhead rv"><h2>Relatório e integracao</h2><span>o que o publisher encaminha no Slack</span></div>
+  <div class="sectionhead rv"><h2>Relatório e integração</h2><span>o que o publisher encaminha no Slack</span></div>
   <div class="toolbar">
     <button class="btn ghost" onclick="window.open('/api/report.md','_blank')">Relatório semanal (Markdown)</button>
     <button class="btn ghost" onclick="csv()">Baixar CSV</button>
@@ -745,9 +753,12 @@ app.get("/", (req: any, res: any) => {
     <input id="bulk" placeholder="Cole AppIDs ou URLs Steam: 557040 https://store.steampowered.com/app/1903560" style="flex:1;min-width:280px"/>
     <button class="btn ghost" onclick="bulk()">Importar em lote</button>
   </div>
-  <div class="sectionhead rv"><h2>Linha do tempo de alertas</h2><span>severidade, jogo e horario · clique para filtrar</span></div>
+  </div>
+  <div id="tab-alerts" style="display:none">
+  <div class="sectionhead rv"><h2>Linha do tempo de alertas</h2><span>severidade, jogo e horário · clique para filtrar</span></div>
   <div class="toolbar"><button class="chip on" onclick="afilter('all',this)">Todos</button><button class="chip" onclick="afilter('review-bomb',this)">Críticos</button><button class="chip" onclick="afilter('price',this)">Preço</button><button class="chip" onclick="afilter('rating',this)">Avaliação</button></div>
   <div id="alerts">${alerts.map((a) => `<div class="alert ${a.kind === "review-bomb" ? "bomb" : a.kind === "price" ? "price" : a.kind === "rating" ? "price" : "ok"}" data-k="${a.kind}"><span style="color:#8f98a0">${iconFor(a.kind)}</span><span style="flex:1">${sevFor(a.kind)} <b>${a.text.split(":")[0]}</b>: ${a.text.split(":").slice(1).join(":")}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleString("pt-BR")} · App ${a.appId} · <a href="https://store.steampowered.com/app/${a.appId}" target="_blank" rel="noopener">abrir na Steam</a></small></span></div>`).join("") || `<div class="card"><div class="pad"><b>Nenhum alerta ainda.</b><p style="color:#8f98a0">Alertas nascem a cada coleta (preço, reviews, review-bomb). Rode a primeira agora.</p><button class="btn primary" onclick="runWorker(this)">COLETAR AGORA</button></div></div>`}</div>
+  </div>
   <div class="sectionhead rv"><h2>Metodologia</h2><span>como calculamos, sem caixa-preta</span></div>
   <table><tr><th>Métrica</th><th>Fonte</th><th>Regra do alerta</th></tr>
   <tr><td>Preço e desconto (BRL)</td><td>store.steampowered.com/api/appdetails (cc=BR)</td><td>qualquer mudança de preço ou de % off</td></tr>
@@ -765,6 +776,8 @@ app.get("/", (req: any, res: any) => {
     try{var t0=Date.now();var k=await fetch('/api/check/557040').then(function(x){return x.json().then(function(j){return {s:x.status,j:j};});});L.push('steam: HTTP '+k.s+' em '+(Date.now()-t0)+'ms '+(k.j.name||k.j.error||''));}catch(e){L.push('steam: FALHA DE REDE '+e);}
     box.textContent=L.join(String.fromCharCode(10));}
   function showline(){var cards=document.querySelectorAll('#grid .card');var vis=0;cards.forEach(function(c){if(c.style.display!=='none')vis++;});var el=document.getElementById('showline');if(el)el.textContent='Mostrando '+vis+' de '+cards.length+' jogos';}
+  function switchTab(t,el){var bar=document.getElementById('maintabs');if(bar)bar.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});if(el)el.classList.add('on');['portfolio','alerts','account'].forEach(function(k){var d=document.getElementById('tab-'+k);if(d)d.style.display=(k===t)?'':'none';});try{location.hash='/'+t;}catch(e){}window.scrollTo({top:0,behavior:'smooth'});}
+  (function(){var h=(location.hash||'').replace('#/','');if(h==='alerts'||h==='account')switchTab(h);})();
   function filter(m,el){var bar=document.getElementById('filterbar');bar.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});el.classList.add('on');var g=document.getElementById('grid');g.classList.add('fading');
     setTimeout(function(){document.querySelectorAll('#grid .card').forEach(function(c){var mine=c.getAttribute('data-mine')==='1';c.style.display=(m===0||(m===1&&mine)||(m===2&&!mine))?'':'none';});g.classList.remove('fading');showline();},160);}
   function afilter(k,el){[...el.parentElement.children].forEach(c=>c.classList.remove('on'));el.classList.add('on');
