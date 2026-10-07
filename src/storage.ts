@@ -40,6 +40,8 @@ export interface UserData {
   alerts: Alert[];
   webhook: string;
   steamworksKey: string;
+  digest: boolean;
+  lastDigest: string | null;
 }
 
 interface DB {
@@ -54,7 +56,7 @@ const dir = process.env.DATA_DIR || root;
 const file = join(dir, "data.json");
 
 function blankData(): UserData {
-  return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "" };
+  return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "", digest: true, lastDigest: null };
 }
 
 const SESSION_DAYS = Number(process.env.SESSION_DAYS || 30);
@@ -81,6 +83,10 @@ function load(): DB {
         if (!u.wantPeriod) u.wantPeriod = "monthly";
         if (u.proUntil === undefined) u.proUntil = null;
       }
+      for (const k of Object.keys(raw.data ?? {})) {
+        if (raw.data[k].digest === undefined) raw.data[k].digest = true;
+        if (raw.data[k].lastDigest === undefined) raw.data[k].lastDigest = null;
+      }
       return { users: raw.users, sessions: raw.sessions ?? [], resets: raw.resets ?? [], data: raw.data ?? {} };
     }
     const migrated: DB = { users: [], sessions: [], resets: [], data: {} };
@@ -104,7 +110,9 @@ function load(): DB {
       history: raw.history ?? [],
       alerts: raw.alerts ?? [],
       webhook: raw.config?.webhook ?? "",
-      steamworksKey: ""
+      steamworksKey: "",
+      digest: true,
+      lastDigest: null
     };
     return migrated;
   } catch {
@@ -376,6 +384,25 @@ export const storage = {
   },
   getKey(userId: string): string {
     return load().data[userId]?.steamworksKey || "";
+  },
+  digestOn(userId: string): boolean {
+    return load().data[userId]?.digest !== false;
+  },
+  setDigest(userId: string, on: boolean): void {
+    const db = load();
+    ud(db, userId).digest = on;
+    save(db);
+  },
+  dueDigest(userId: string): boolean {
+    const d = load().data[userId];
+    if (!d || d.digest === false || !d.games.length) return false;
+    if (!d.lastDigest) return true;
+    return Date.now() - new Date(d.lastDigest).getTime() > 20 * 3600000;
+  },
+  markDigest(userId: string): void {
+    const db = load();
+    ud(db, userId).lastDigest = new Date().toISOString();
+    save(db);
   },
   setKey(userId: string, key: string): void {
     const db = load();

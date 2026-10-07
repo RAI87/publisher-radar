@@ -739,6 +739,7 @@ app.get("/", (req: any, res: any) => {
     <input id="wh" placeholder="Webhook Discord https://discord.com/api/webhooks/..." style="min-width:300px;flex:1"/>
     <button class="btn" onclick="saveWh()">Salvar webhook</button>
     <button class="btn ghost" onclick="testWh()">Testar alerta</button>
+    <button class="btn ghost" id="digestBtn" onclick="toggleDigest()">Resumo diário: ...</button>
   </div>
   <div class="toolbar">
     <input id="bulk" placeholder="Cole AppIDs ou URLs Steam: 557040 https://store.steampowered.com/app/1903560" style="flex:1;min-width:280px"/>
@@ -813,6 +814,9 @@ app.get("/", (req: any, res: any) => {
     else if(j.ok){toast('Sem webhook salvo: registrado apenas no log do servidor.','warn');}
     else{toast('Falha: '+(j.error||'verifique o webhook'),'err');}}catch(e){toast('Sem resposta do servidor — aguarde 1 min e tente de novo.','err');}}
   async function bulk(){const t=document.getElementById('bulk').value;if(!t){toast('Cole ao menos um AppID ou URL','warn');return;}const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});if(await needLogin(r))return;const j=await r.json().catch(()=>({added:0}));toast(j.added+' jogo(s) adicionado(s).'+(j.skipped&&j.skipped.length?' Ignorados (não são jogos): '+j.skipped.join(', '):''),'ok');setTimeout(function(){location.reload()},1400);}
+  async function toggleDigest(){try{const r=await fetch('/api/config/digest',{method:'POST'}).then(x=>x.json());if(r.error){toast(r.error,'err');return;}digestLabel(r.digest);toast(r.digest?'Resumo diário ATIVADO (1x/dia no Discord).':'Resumo diário desligado.',r.digest?'ok':'warn');}catch(e){toast('Falha de rede.','err');}}
+  function digestLabel(on){var b=document.getElementById('digestBtn');if(b)b.textContent='Resumo diário: '+(on?'ON':'OFF');}
+  fetch('/api/config/digest').then(function(x){return x.json()}).then(function(r){digestLabel(!!r.digest)}).catch(function(){});const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});if(await needLogin(r))return;const j=await r.json().catch(()=>({added:0}));toast(j.added+' jogo(s) adicionado(s).'+(j.skipped&&j.skipped.length?' Ignorados (não são jogos): '+j.skipped.join(', '):''),'ok');setTimeout(function(){location.reload()},1400);}
   function cd(id,iso){const el=document.getElementById(id);if(!el)return;const d=Math.ceil((new Date(iso)-Date.now())/86400000);el.textContent=d>0?('faltam '+d+' dias'):(d===0?'começa hoje':'em andamento ou encerrado');}
   document.querySelectorAll('.kpi b').forEach(function(b){var m=b.textContent.match(/^([\d.]+)/);if(!m)return;var target=parseInt(m[1].replace(/\./g,''),10);if(!target||target<20)return;var t0=performance.now();function fr(t){var p=Math.min(1,(t-t0)/900);var v=Math.round(target*(1-Math.pow(1-p,3)));b.childNodes[0].nodeValue=v.toLocaleString('pt-BR');if(p<1)requestAnimationFrame(fr);}requestAnimationFrame(fr);});
   cd('cd1','2026-10-19T10:00:00-03:00');cd('cd2','2027-02-13T10:00:00-03:00');showline();
@@ -920,6 +924,17 @@ app.post("/api/config/webhook", (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/config/digest", (req: any, res: any) => {
+  res.json({ digest: storage.digestOn(U(req)) });
+});
+
+app.post("/api/config/digest", (req: any, res: any) => {
+  const uid = U(req);
+  const on = req.body?.on !== undefined ? Boolean(req.body.on) : !storage.digestOn(uid);
+  storage.setDigest(uid, on);
+  res.json({ ok: true, digest: on });
+});
+
 app.get("/api/audit/:appId", async (req, res) => {
   try {
     const s = storage.lastSnapshot(U(req),req.params.appId) ?? await fetchSnapshot(req.params.appId);
@@ -1016,6 +1031,18 @@ function internalOk(req: any): boolean {
   return key !== "" && key === expected;
 }
 
+function buildDigest(userId: string): string[] {
+  const lines: string[] = [];
+  for (const g of storage.listGames(userId)) {
+    const s = storage.lastSnapshot(userId, g.appId);
+    if (!s) continue;
+    const h = storage.historyFor(userId, g.appId, 8);
+    const vel = h.length > 1 ? ((h[h.length - 1].totalReviews - h[0].totalReviews) / Math.max(1, h.length - 1)).toFixed(1) : "0";
+    lines.push(`- ${g.label || s.name}: ${s.priceBRL != null ? `R$ ${s.priceBRL}` : "a anunciar"}${s.discountPct ? ` (-${s.discountPct}%)` : ""} · ${s.totalReviews} reviews ${s.positivePct}%+ · +${vel}/dia`);
+  }
+  return lines.length ? lines : ["Sem jogos com dados ainda — rode uma coleta."];
+}
+
 app.get("/api/internal/users", (req, res) => {
   if (!internalOk(req)) return res.status(403).json({ error: "forbidden" });
   res.json({ users: storage.allUserIds() });
@@ -1048,6 +1075,13 @@ app.post("/api/internal/collect", async (req, res) => {
       }
       await sleep(1200);
     }
+    if (storage.dueDigest(userId)) {
+      const lines = buildDigest(userId);
+      const { sendDigest: sendD } = await import("./discord.js");
+      await sendD(userId, lines).catch(() => {});
+      storage.markDigest(userId);
+      out.push("resumo diário enviado");
+    }
     res.json({ ok: true, result: out });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "falha na coleta" });
@@ -1079,6 +1113,12 @@ app.post("/api/worker", async (req: any, res: any) => {
         out.push(`${g.appId}: ${e instanceof Error ? e.message : "falha"}`);
       }
       await sleep(1200);
+    }
+    if (storage.dueDigest(requester)) {
+      const { sendDigest: sendD } = await import("./discord.js");
+      await sendD(requester, buildDigest(requester)).catch(() => {});
+      storage.markDigest(requester);
+      out.push("resumo diário enviado");
     }
     res.json({ ok: true, result: out });
   } catch (e) {

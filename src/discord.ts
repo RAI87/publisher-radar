@@ -56,3 +56,7 @@ export async function sendRadarEmbed(userId: string, snap: SteamSnapshot, change
 export function fmtRadar(lines: string[]): string {
   return ["Publisher Radar " + new Date().toLocaleString("pt-BR"), "", ...lines].join("\n");
 }
+
+export async function sendDigest(userId: string, lines: string[]): Promise<{ simulated: boolean }> {
+  return sendDiscord(userId, ["BOM DIA DO PORTFOLIO — " + new Date().toLocaleDateString("pt-BR"), "", ...lines].join("\n"));
+}
