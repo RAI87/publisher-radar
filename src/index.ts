@@ -5,9 +5,17 @@ import { parseCookies } from "./auth.js";
 import { fetchSnapshot, fetchRecentReviews, scoreForecast, draftReply, parseAppId } from "./steam.js";
 import { diffSnapshots } from "./alerting.js";
 import { pixCode, pixAmount, pixKey } from "./pix.js";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { sendDiscord } from "./discord.js";
 
 const app = express();
+app.use("/logo.png", (_req: any, res: any) => {
+  res.sendFile(join(dirname(fileURLToPath(import.meta.url)), "..", "public", "logo.png"));
+});
+app.get("/favicon.ico", (_req: any, res: any) => {
+  res.sendFile(join(dirname(fileURLToPath(import.meta.url)), "..", "public", "logo.png"));
+});
 
 function stripeConf(): { key: string; wh: string; links: Record<string, string> } {
   return {
@@ -106,7 +114,7 @@ app.get("/login", (req: any, res: any) => {
   .shake{animation:shake .3s}
   @keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
   </style></head><body>${pxBody}<div class="loginwrap rise" id="lw">
-  <div style="text-align:center;margin-bottom:18px"><div class="logo" style="margin:0 auto 12px;width:52px;height:52px">${svg.radar}</div>
+  <div style="text-align:center;margin-bottom:18px"><img src="/logo.png" alt="Publisher Radar 87" style="width:120px;image-rendering:pixelated;border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"/></div>
   <div class="px-title" style="font-size:17px">PUBLISHER RADAR 87<span class="cursor"></span></div>
   <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
   <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias grátis e 3 jogos demo. Sem cartão.</p>
@@ -527,7 +535,7 @@ app.get("/", (req: any, res: any) => {
   <style>${css}</style>${pxHead}</head><body>${pxBody}
   <div class="topbar"><div class="wrap"><span>Fonte: Steam Store API + Steam Reviews API (oficial, a cada 6h)</span><span style="margin-left:auto">Webhook Discord: ${whOn ? "conectado" : "pendente"} · ${planLabel} · ${me.email} · build ${buildId()} · <a href="#" onclick="logout();return false">sair</a></span></div></div>
   <div class="wrap">
-  <div class="nav"><div class="logo">${svg.radar}</div><div><span class="px-title">PUBLISHER RADAR 87<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · última sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
+  <div class="nav"><img src="/logo.png" alt="Publisher Radar 87" style="width:46px;height:46px;object-fit:cover;image-rendering:pixelated;border:3px solid #33415e;box-shadow:4px 4px 0 #000"/><div><span class="px-title">PUBLISHER RADAR 87<span class="cursor"></span></span> <span style="color:#8f98a0">· Trial de 7 dias · dados isolados por conta</span><br/><span class="live"><span class="dot"></span>Coleta ativa · última sincronizacao: ${lastSync ? new Date(lastSync).toLocaleString("pt-BR") : "hoje"}</span></div>
   <span style="margin-left:auto;display:flex;gap:8px"></span><a class="btn ghost" href="/landing">Ver oferta R$ 99</a><button class="btn" onclick="runWorker(this)">${svg.chart} Coletar agora</button></div>
   ${trialDead ? `<div class="alert bomb"><span style="color:#f87171">${svg.bell}</span><span><b> trial expirado.</b> Ative o Pro para continuar coletando. <a href="#conta">Ativar Pro · R$ 99 Pix</a></span></div>` : ""}
   <div class="toolbar" id="onboard">
@@ -682,7 +690,7 @@ app.get("/landing", (req: any, res: any) => {
   <div class="topbar"><div class="wrap"><span>Monitoramento de portfolio Steam para publishers</span><span style="margin-left:auto">PT-BR · <a href="https://api.whatsapp.com/send/?phone=557391865825&text=Ol%C3%A1+Raimundo%21+Vi+a+plataforma+da+87+Analytics+e+gostaria+de+agendar+uma+demonstra%C3%A7%C3%A3o+de+Business+Intelligence+para+a+minha+empresa.&type=phone_number&app_absent=0" target="_blank" rel="noopener">Suporte WhatsApp</a> · Sem fidelidade</span></div></div>
   <div class="ticker"><span class="track">WISHLIST VELOCITY <b>+++</b> REVIEW-BOMB ALERT <b>+++</b> PREÇO EM BRL <b>+++</b> NEXT FEST 19–26 OUT <b>+++</b> MADE IN BRAZIL SALE <b>+++</b> RELATÓRIO SEMANAL <b>+++</b> WISHLIST VELOCITY <b>+++</b> REVIEW-BOMB ALERT <b>+++</b> PREÇO EM BRL <b>+++</b> NEXT FEST 19–26 OUT <b>+++</b>&nbsp;</span></div>
   <div class="wrap">
-  <div class="nav"><div class="logo">${svg.radar}</div><span class="px-title">PUBLISHER RADAR 87<span class="cursor"></span></span><span style="margin-left:auto"></span><a class="btn ghost" href="/login">Entrar</a> <a class="btn primary" href="/">Abrir painel demo</a></div>
+  <div class="nav"><img src="/logo.png" alt="Publisher Radar 87" style="width:46px;height:46px;object-fit:cover;image-rendering:pixelated;border:3px solid #33415e;box-shadow:4px 4px 0 #000"/><span class="px-title">PUBLISHER RADAR 87<span class="cursor"></span></span><span style="margin-left:auto"></span><a class="btn ghost" href="/login">Entrar</a> <a class="btn primary" href="/">Abrir painel demo</a></div>
   <p class="insert">— INSERT COIN · PARA PUBLISHERS COM 5+ JOGOS NA STEAM —</p>
   <h1 class="h1px">A promo do concorrente<br/>vende o <span class="hl">fim de semana.</span><br/>Você descobre na segunda.</h1>
   <p style="color:#c7d5e0;font-size:17px;max-width:760px">Alerta no Discord a cada 6h com preço em BRL, base de reviews, variação de aprovação e pico de jogadores. Sem planilha, sem painel abandonado.</p>
@@ -692,7 +700,12 @@ app.get("/landing", (req: any, res: any) => {
       <div class="msg"><b>Radar BOT</b> <small style="color:#8f98a0">hoje as 09:14</small><div class="embed"><b>99Vidas — entrada em promoção</b><br/><span style="color:#c7d5e0">R$ 29,99 para <b>R$ 5,99 (-80%)</b> · +12 reviews no dia</span><br/><a href="https://store.steampowered.com/app/557040">Abrir na Steam</a></div></div>
     </div>
     <div>
-      <div class="kpi"><b>R$ 99<span style="font-size:14px;color:#8f98a0">/mês</span></b><span>Até 30 jogos · Pix ou cartão · cancele quando quiser</span><br/><small style="color:#8f98a0">Piloto de 7 dias com seus jogos já cadastrados. Sem cartão.</small></div>
+      <div class="steps" style="margin-top:0">
+        <div class="step"><b class="num">S</b><p><b>Starter · R$ 49/mês</b><br/><span>Até 10 jogos · ideal para solo.</span></p></div>
+        <div class="step hot"><b class="num">P</b><p><b>Pro · R$ 99/mês</b><br/><span>Até 30 jogos · para publishers.</span></p></div>
+        <div class="step"><b class="num">12</b><p><b>Anual · R$ 990/ano</b><br/><span>Pro 12 meses · 2 meses grátis.</span></p></div>
+      </div>
+      <p style="color:#8f98a0;font-size:13px">Pix ou cartão · cancele quando quiser · piloto de 7 dias sem cartão.</p>
       <div class="step" style="margin-top:12px"><b>Entrega semanal no Discord</b><p style="color:#c7d5e0;font-size:14px;margin:8px 0 0">Velocity diária por jogo · Previsão de nota (faltam X positivas) · Rascunho de resposta PT/EN · Auditoria da página 0-100 · Calendário Next Fest/Sale · Relatório semanal em Markdown/CSV.</p>
       <p style="margin:12px 0 0"><a class="btn" href="mailto:87analytics87@gmail.com?subject=Piloto%207%20dias%20Publisher%20Radar%2087">Solicitar piloto de 7 dias</a> <a class="btn ghost" href="https://api.whatsapp.com/send/?phone=557391865825&text=Ol%C3%A1+Raimundo%21+Vi+a+plataforma+da+87+Analytics+e+gostaria+de+agendar+uma+demonstra%C3%A7%C3%A3o+de+Business+Intelligence+para+a+minha+empresa.&type=phone_number&app_absent=0" target="_blank" rel="noopener">Chamar no WhatsApp</a></p>
       <p style="color:#8f98a0;font-size:12px">contato: 87analytics87@gmail.com · Exemplo de piloto: 99Vidas (QUByte), Atomic Picnic (BitCake) e Sportia (Hermit Crab) já monitorados.</p></div>
@@ -700,24 +713,24 @@ app.get("/landing", (req: any, res: any) => {
   </div>
   <div class="sectionhead rv"><span class="pxnum">01</span><h2>Como funciona</h2><span>3 passos, 2 minutos</span></div>
   <div class="steps">
-    <div class="step rise"><b class="num">1</b><p><b>Conecte o Discord</b><br/><span style="color:#8f98a0">Crie um webhook no canal #alertas-steam e cole na configuracao. Nenhum acesso a conta Steam.</span></p></div>
+    <div class="step rise"><b class="num">1</b><p><b>Conecte o Discord</b><br/><span style="color:#8f98a0">Crie um webhook no canal #alertas-steam e cole na configuração. Nenhum acesso a conta Steam.</span></p></div>
     <div class="step rise" style="animation-delay:80ms"><b class="num">2</b><p><b>Cadastre AppIDs</b><br/><span style="color:#8f98a0">Seus jogos + 5 concorrentes por jogo. Importamos preço, reviews e players na hora.</span></p></div>
     <div class="step rise" style="animation-delay:160ms"><b class="num">3</b><p><b>Receba e aja</b><br/><span style="color:#8f98a0">Alerta com severidade, link direto e comparativo. Histórico completo no painel.</span></p></div>
   </div>
   <div class="sectionhead rv"><span class="pxnum">02</span><h2>Feito para quem publica volume</h2><span>3 exemplos reais já no piloto</span></div>
   <table><tr><th>Jogo</th><th>Publisher</th><th>Uso no piloto</th></tr>
-  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/557040/capsule_184x69.jpg" style="border-radius:6px" alt="99Vidas"/></td><td><b>QUByte</b><br/><span style="color:#8f98a0">59 jogos e 40 demos</span></td><td>Acompanhar promocoes e erosao de avaliação em catalogo grande</td></tr>
+  <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/557040/capsule_184x69.jpg" style="border-radius:6px" alt="99Vidas"/></td><td><b>QUByte</b><br/><span style="color:#8f98a0">59 jogos e 40 demos</span></td><td>Acompanhar promoções e erosão de avaliação em catalogo grande</td></tr>
   <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1903560/capsule_184x69.jpg" style="border-radius:6px" alt="Atomic Picnic"/></td><td><b>BitCake</b><br/><span style="color:#8f98a0">Multiplayer + Sale com 1.000 jogos</span></td><td>Medir velocity durante a Made in Brazil Sale e detectar pico pos-patch</td></tr>
   <tr><td><img src="https://cdn.cloudflare.steamstatic.com/steam/apps/3897390/capsule_184x69.jpg" style="border-radius:6px" alt="Sportia"/></td><td><b>Hermit Crab</b><br/><span style="color:#8f98a0">Sportia em pre-lançamento</span></td><td>Baseline de reviews zerado e alerta do primeiro movimento</td></tr></table>
   <div class="sectionhead rv"><span class="pxnum">03</span><h2>Comparativo honesto</h2><span>quando usar cada um</span></div>
   <table><tr><th>Ferramenta</th><th>Preço</th><th>Forte</th><th>Limite para publisher BR</th></tr>
-  <tr><td>SteamDB</td><td>Gratis</td><td>Dado bruto exato</td><td>Sem alerta, sem comparativo, exige abrir todo dia</td></tr>
+  <tr><td>SteamDB</td><td>Grátis</td><td>Dado bruto exato</td><td>Sem alerta, sem comparativo, exige abrir todo dia</td></tr>
   <tr><td>VG Insights / Sensor Tower</td><td>Enterprise</td><td>Estimativa + console</td><td>Preço sob consulta, em inglês, excesso para 30 jogos</td></tr>
   <tr><td>Wishlist Engine</td><td>US$ 15/mês</td><td>Velocity + audit</td><td>Em inglês, sem review-bomb em PT, sem Sale BR</td></tr>
   <tr><td><b>Publisher Radar 87</b></td><td><b>R$ 99/mês</b></td><td><b>Alerta no Discord em PT</b></td><td>Foco Steam PC; wishlist privada exige chave Steamworks</td></tr></table>
   <div class="sectionhead rv"><h2>Perguntas frequentes</h2></div>
-  <p><b>De onde vem o dado?</b><br/><span style="color:#8f98a0">API publica da Steam (appdetails cc=BR, appreviews, players). Coleta a cada 6h, histórico no painel. Wishlist privada so com chave financeira Steamworks do dono — ativamos no piloto se você fornecer.</span></p>
-  <p><b>Preciso instalar algo na Steam?</b><br/><span style="color:#8f98a0">Não. Somente AppIDs publicos + webhook do Discord. Nenhuma senha.</span></p>
+  <p><b>De onde vem o dado?</b><br/><span style="color:#8f98a0">API pública da Steam (appdetails cc=BR, appreviews, players). Coleta a cada 6h, histórico no painel. Wishlist privada só com chave financeira Steamworks do dono — ativamos no piloto se você fornecer.</span></p>
+  <p><b>Preciso instalar algo na Steam?</b><br/><span style="color:#8f98a0">Não. Somente AppIDs públicos + webhook do Discord. Nenhuma senha.</span></p>
   <p><b>O que acontece no review-bomb?</b><br/><span style="color:#8f98a0">Alerta CRITICO com as últimas negativas, link direto e rascunho de resposta em PT/EN para o community manager.</span></p>
   <div class="footer"><span>Publisher Radar 87 · Imagens, preços e marcas: Valve/Steam, uso descritivo</span><span style="margin-left:auto"><a href="/">Painel</a> · <a href="/api/export.csv">CSV de exemplo</a></span></div>
   ${pxScript}</div></body></html>`);
