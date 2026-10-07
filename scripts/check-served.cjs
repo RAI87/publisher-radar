@@ -9,6 +9,7 @@ const problems = [];
 for (const m of src.matchAll(/'\s*\\n\s*'/g)) problems.push("single-quoted \\n em index " + m.index);
 // \' vira ' no HTML servido e quebra strings JS
 for (const m of src.matchAll(/\\'/g)) problems.push("\\' em index " + m.index);
+for (const m of src.matchAll(/\\"/g)) problems.push('\\" em index (vira " no HTML e quebra strings JS) ' + m.index);
 if (problems.length) {
   console.log("SERVED-JS RISCO:");
   problems.slice(0, 10).forEach((p) => console.log(" - " + p));
