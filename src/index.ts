@@ -954,7 +954,10 @@ app.post("/api/worker", async (req: any, res: any) => {
 app.post("/api/discord/test", async (req: any, res: any) => {
   try {
     const requester = U(req);
-    const r = await sendDiscord(requester, "Radar conectado — canal de alertas ativo.\nAtomic Picnic: 4 negativas em 24h (78% para 74%)\n99Vidas: R$ 29,99 para R$ 5,99 (-80%)");
+    const games = storage.listGames(requester);
+    const name = (storage.lastSnapshot(requester, games[0]?.appId ?? "")?.name) || "seu jogo";
+    const r = await sendDiscord(requester, "Radar conectado — canal de alertas ativo.\nExemplo: Atomic Picnic com 4 negativas em 24h, ou 99Vidas entrando em promoção de R$ 29,99 por R$ 5,99.");
+    storage.pushAlert(requester, { appId: games[0]?.appId ?? "demo", kind: "auto", text: `${name}: teste de alerta — canal funcionando` });
     res.json({ ok: true, simulated: r.simulated });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "erro" });
