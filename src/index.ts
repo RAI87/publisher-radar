@@ -764,6 +764,13 @@ app.get("/", (req: any, res: any) => {
   </div>
   <div id="tab-alerts" style="display:none">
   <div class="sectionhead rv"><h2>Linha do tempo de alertas</h2><span>severidade, jogo e horário · clique para filtrar</span></div>
+  <div class="card"><div class="pad"><b>COMO FUNCIONA</b>
+  <p style="color:#c7d5e0;font-size:13px;margin:8px 0">A cada coleta (manual ou automática a cada 6h), comparamos com a coleta anterior. Só vira alerta o que passou da régua — jogo estável não gera ruído.</p>
+  <table><tr><th>Tipo</th><th>Régua</th><th>Receber</th></tr>
+  <tr><td><b>Preço</b></td><td>qualquer mudança de preço ou % off</td><td><button class="btn ghost small" id="pf-price" onclick="pref('price',this)">...</button></td></tr>
+  <tr><td><b>Avaliação</b></td><td>aprovação varia 2pp+ (20+ reviews) ou auditoria &lt; 70</td><td><button class="btn ghost small" id="pf-rating" onclick="pref('rating',this)">...</button></td></tr>
+  <tr><td><b>Review-bomb</b></td><td>3+ negativas em 24h</td><td><button class="btn ghost small" id="pf-bomb" onclick="pref('bomb',this)">...</button></td></tr>
+  <tr><td><b>Movimento</b></td><td>+5 reviews no ciclo, pico de players 2x, primeira coleta</td><td><button class="btn ghost small" id="pf-info" onclick="pref('info',this)">...</button></td></tr></table></div></div>
   <div class="toolbar"><button class="chip on" onclick="afilter('all',this)">Todos</button><button class="chip" onclick="afilter('review-bomb',this)">Críticos</button><button class="chip" onclick="afilter('price',this)">Preço</button><button class="chip" onclick="afilter('rating',this)">Avaliação</button></div>
   <div id="alerts">${alerts.map((a) => `<div class="alert ${a.kind === "review-bomb" ? "bomb" : a.kind === "price" ? "price" : a.kind === "rating" ? "price" : "ok"}" data-k="${a.kind}"><span style="color:#8f98a0">${iconFor(a.kind)}</span><span style="flex:1">${sevFor(a.kind)} <b>${a.text.split(":")[0]}</b>: ${a.text.split(":").slice(1).join(":")}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleString("pt-BR")} · App ${a.appId} · <a href="https://store.steampowered.com/app/${a.appId}" target="_blank" rel="noopener">abrir na Steam</a></small></span></div>`).join("") || `<div class="card"><div class="pad"><b>Nenhum alerta ainda.</b><p style="color:#8f98a0">Alertas nascem a cada coleta (preço, reviews, review-bomb). Rode a primeira agora.</p><button class="btn primary" onclick="runWorker(this)">COLETAR AGORA</button></div></div>`}</div>
   </div>
@@ -841,6 +848,9 @@ app.get("/", (req: any, res: any) => {
   async function bulk(){const t=document.getElementById('bulk').value;if(!t){toast('Cole ao menos um AppID ou URL','warn');return;}const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});if(await needLogin(r))return;const j=await r.json().catch(()=>({added:0}));toast(j.added+' jogo(s) adicionado(s).'+(j.skipped&&j.skipped.length?' Ignorados (não são jogos): '+j.skipped.join(', '):''),'ok');setTimeout(function(){location.reload()},1400);}
   async function toggleDigest(){try{const r=await fetch('/api/config/digest',{method:'POST'}).then(x=>x.json());if(r.error){toast(r.error,'err');return;}digestLabel(r.digest);toast(r.digest?'Resumo diário ATIVADO (1x/dia no Discord).':'Resumo diário desligado.',r.digest?'ok':'warn');}catch(e){toast('Falha de rede.','err');}}
   function digestLabel(on){var b=document.getElementById('digestBtn');if(b)b.textContent='Resumo diário: '+(on?'ON':'OFF');}
+  async function pref(k,el){el.disabled=true;try{var cur=await fetch('/api/config/alerts').then(function(x){return x.json()});var body={};body[k]=!cur[k];var r=await fetch('/api/config/alerts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(x){return x.json()});paintPrefs(r);toast('Preferências salvas.','ok');}catch(e){toast('Falha de rede.','err');}el.disabled=false;}
+  function paintPrefs(p){if(!p)return;['price','rating','bomb','info'].forEach(function(k){var b=document.getElementById('pf-'+k);if(b)b.textContent=p[k]?'ON':'OFF';});}
+  fetch('/api/config/alerts').then(function(x){return x.json()}).then(paintPrefs).catch(function(){});
   fetch('/api/config/digest').then(function(x){return x.json()}).then(function(r){digestLabel(!!r.digest)}).catch(function(){});
   function cd(id,iso){const el=document.getElementById(id);if(!el)return;const d=Math.ceil((new Date(iso)-Date.now())/86400000);el.textContent=d>0?('faltam '+d+' dias'):(d===0?'começa hoje':'em andamento ou encerrado');}
   document.querySelectorAll('.kpi b').forEach(function(b){var m=b.textContent.match(/^([\d.]+)/);if(!m)return;var target=parseInt(m[1].replace(/\./g,''),10);if(!target||target<20)return;var t0=performance.now();function fr(t){var p=Math.min(1,(t-t0)/900);var v=Math.round(target*(1-Math.pow(1-p,3)));b.childNodes[0].nodeValue=v.toLocaleString('pt-BR');if(p<1)requestAnimationFrame(fr);}requestAnimationFrame(fr);});
@@ -974,6 +984,18 @@ app.get("/api/config/digest", (req: any, res: any) => {
   res.json({ digest: storage.digestOn(U(req)) });
 });
 
+app.get("/api/config/alerts", (req: any, res: any) => {
+  res.json(storage.getPrefs(U(req)));
+});
+
+app.post("/api/config/alerts", (req: any, res: any) => {
+  const uid = U(req);
+  const patch: any = {};
+  for (const k of ["price", "rating", "bomb", "info"]) {
+    if (req.body?.[k] !== undefined) patch[k] = Boolean(req.body[k]);
+  }
+  res.json(storage.setPrefs(uid, patch));
+});
 app.post("/api/config/digest", (req: any, res: any) => {
   const uid = U(req);
   const on = req.body?.on !== undefined ? Boolean(req.body.on) : !storage.digestOn(uid);
@@ -1042,7 +1064,7 @@ app.get("/api/check/:appId", async (req, res) => {
     const prev = storage.lastSnapshot(requester, req.params.appId);
     const s = await fetchSnapshot(req.params.appId);
     storage.pushSnapshot(requester, s);
-    const changes = diffSnapshots(prev, s);
+    const changes = diffSnapshots(prev, s, storage.getPrefs(requester));
     for (const c of changes) storage.pushAlert(requester, { appId: s.appId, kind: c.kind, text: `${s.name}: ${c.text}` });
     res.json({ ...s, newAlerts: changes.length });
   } catch (e) {
@@ -1098,7 +1120,7 @@ app.post("/api/internal/collect", async (req, res) => {
   if (!internalOk(req)) return res.status(403).json({ error: "forbidden" });
   try {
     const userId = String(req.body?.userId || "");
-    if (!userId) return res.status(400).json({ error: "userId obrigatorio" });
+    if (!userId) return res.status(400).json({ error: "userId obrigatório" });
     const { fetchSnapshot: fsnap, fetchRecentNegatives: fneg } = await import("./steam.js");
     const { sendRadarEmbed: sendE } = await import("./discord.js");
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -1108,10 +1130,11 @@ app.post("/api/internal/collect", async (req, res) => {
         const prev = storage.lastSnapshot(userId, g.appId);
         const cur = await fsnap(g.appId);
         storage.pushSnapshot(userId, cur);
-        const changes = diffSnapshots(prev, cur);
+        const prefs = storage.getPrefs(userId);
+        const changes = diffSnapshots(prev, cur, prefs);
         try {
           const neg = await fneg(g.appId, 1);
-          if (neg >= 3) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
+          if (neg >= 3 && prefs.bomb) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
         } catch {}
         for (const c of changes) storage.pushAlert(userId, { appId: g.appId, kind: c.kind, text: `${cur.name}: ${c.text}` });
         if (changes.length) await sendE(userId, cur, changes.map((c) => c.text));
@@ -1147,10 +1170,11 @@ app.post("/api/worker", async (req: any, res: any) => {
         const prev = storage.lastSnapshot(requester, g.appId);
         const cur = await fsnap(g.appId);
         storage.pushSnapshot(requester, cur);
-        const changes = diffSnapshots(prev, cur);
+        const prefs = storage.getPrefs(requester);
+        const changes = diffSnapshots(prev, cur, prefs);
         try {
           const neg = await fneg(g.appId, 1);
-          if (neg >= 3) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
+          if (neg >= 3 && prefs.bomb) changes.push({ text: `${neg} avaliações negativas nas últimas 24h`, kind: "review-bomb" });
         } catch {}
         for (const c of changes) storage.pushAlert(requester, { appId: g.appId, kind: c.kind, text: `${cur.name}: ${c.text}` });
         if (changes.length) await sendE(requester, cur, changes.map((c) => c.text));

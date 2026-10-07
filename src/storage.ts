@@ -34,6 +34,13 @@ export interface User {
   createdAt: string;
 }
 
+export interface AlertPrefs {
+  price: boolean;
+  rating: boolean;
+  bomb: boolean;
+  info: boolean;
+}
+
 export interface UserData {
   games: TrackedGame[];
   history: SteamSnapshot[];
@@ -43,10 +50,11 @@ export interface UserData {
   digest: boolean;
   lastDigest: string | null;
   share: string | null;
+  prefs: AlertPrefs;
 }
 
 function blankData(): UserData {
-  return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "", digest: true, lastDigest: null, share: null };
+  return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "", digest: true, lastDigest: null, share: null, prefs: { price: true, rating: true, bomb: true, info: true } };
 }
 
 interface DB {
@@ -114,7 +122,8 @@ function load(): DB {
       steamworksKey: "",
       digest: true,
       lastDigest: null,
-      share: null
+      share: null,
+      prefs: { price: true, rating: true, bomb: true, info: true }
     };
     return migrated;
   } catch {
@@ -386,6 +395,18 @@ export const storage = {
   },
   getKey(userId: string): string {
     return load().data[userId]?.steamworksKey || "";
+  },
+  getPrefs(userId: string): AlertPrefs {
+    const p = load().data[userId]?.prefs;
+    return { price: p?.price !== false, rating: p?.rating !== false, bomb: p?.bomb !== false, info: p?.info !== false };
+  },
+  setPrefs(userId: string, patch: Partial<AlertPrefs>): AlertPrefs {
+    const db = load();
+    const d = ud(db, userId);
+    if (!d.prefs) d.prefs = { price: true, rating: true, bomb: true, info: true };
+    Object.assign(d.prefs, patch);
+    save(db);
+    return d.prefs;
   },
   digestOn(userId: string): boolean {
     return load().data[userId]?.digest !== false;
