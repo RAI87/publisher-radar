@@ -114,9 +114,9 @@ app.get("/login", (req: any, res: any) => {
   .shake{animation:shake .3s}
   @keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
   </style></head><body>${pxBody}<div class="loginwrap rise" id="lw">
-  <div style="text-align:center;margin-bottom:18px"><img src="/logo.png" alt="Publisher Radar 87" style="width:120px;image-rendering:pixelated;border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"/></div>
-  <div class="px-title" style="font-size:17px">PUBLISHER RADAR 87<span class="cursor"></span></div>
-  <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div>
+  <div style="text-align:center;margin-bottom:18px"><img src="/logo.png" alt="Publisher Radar 87" style="width:120px;image-rendering:pixelated;border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"/>
+  <div class="px-title" style="font-size:17px;margin-top:12px">PUBLISHER RADAR 87<span class="cursor"></span></div>
+  <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
   <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000;margin-top:18px"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias grátis e 3 jogos demo. Sem cartão.</p>
   <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="publisher@studio.com" autocomplete="email"/></div>
   <div class="field"><label>SENHA · MIN 6</label><input id="pass" type="password" placeholder="••••••" autocomplete="current-password"/></div>
