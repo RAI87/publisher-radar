@@ -560,6 +560,9 @@ tbody tr:hover{background:#16203a}
 .sectionhead h2{margin:0;font-size:18px}
 .sectionhead span{color:var(--mut);font-size:12px}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin:6px 0 0;flex-wrap:wrap}
+.tblwrap{overflow-x:auto;margin:0 -2px;padding:0 2px 6px}
+#tab-alerts{padding:0 4px}
+#alerts .alert{margin-left:2px;margin-right:2px}
 .footer{margin-top:44px;padding-top:18px;border-top:3px solid #1b2740;color:var(--mut);font-size:12px;display:flex;gap:16px;flex-wrap:wrap}
 #toasts{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;flex-direction:column;gap:10px;max-width:min(380px,90vw)}
 .toast{background:#0d1526;border:3px solid var(--line);border-left:6px solid var(--blue);padding:12px 14px;box-shadow:5px 5px 0 #000;font-size:13px;animation:rise .25s ease both}
@@ -705,12 +708,12 @@ app.get("/", (req: any, res: any) => {
   <div id="diagbox" style="display:none;background:#0c1a12;border:3px solid #4ade80;color:#d9f99d;padding:10px 14px;margin:10px 0;font-size:12px;white-space:pre-wrap"></div>
   <div class="grid" id="grid" style="margin-top:12px">${games.length ? games.map((g, i) => cardHtml(uid, g, i)).join("") : `<div class="card"><div class="pad"><b>Nenhum jogo monitorado ainda.</b><p style="color:#8f98a0">Carregue os 3 jogos demo (99Vidas, Atomic Picnic, Sportia) ou adicione pelo AppID acima.</p><button class="btn primary" onclick="seedDemo(this)">CARREGAR 3 JOGOS DEMO</button></div></div>`}</div>
   <div class="sectionhead rv"><h2>Comparativo do portfolio</h2><span>preço BR, desconto, base de reviews, aprovação e velocity de 7 dias</span></div>
-  <table><tr><th>Capsule</th><th>Jogo</th><th>Preço</th><th>Desc.</th><th>Reviews</th><th>Aprovação</th><th>Velocity</th></tr>${rows}</table>
+  <div class="tblwrap"><table><tr><th>Capsule</th><th>Jogo</th><th>Preço</th><th>Desc.</th><th>Reviews</th><th>Aprovação</th><th>Velocity</th></tr>${rows}</table></div>
   <div class="sectionhead rv"><h2>Calendário de vendas</h2><span>próximas janelas — agir antes, não depois</span></div>
-  <table><tr><th>Evento</th><th>Data</th><th>Contagem</th><th>O que o Radar faz</th></tr>
+  <div class="tblwrap"><table><tr><th>Evento</th><th>Data</th><th>Contagem</th><th>O que o Radar faz</th></tr>
   <tr><td><b>Steam Next Fest · Out 2026</b></td><td>19–26 out 2026</td><td id="cd1">—</td><td>Auditoria da página + velocity diária da demo</td></tr>
   <tr><td><b>Made in Brazil Sale</b></td><td>13–17 fev (anual)</td><td id="cd2">—</td><td>Relatório por publisher + comparativo de desconto</td></tr>
-  <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table>
+  <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table></div>
   </div>
   <div id="tab-account" style="display:none">
   <div class="sectionhead rv" id="conta"><h2>Conta e cobrança</h2><span id="planline">plano e trial</span></div>
