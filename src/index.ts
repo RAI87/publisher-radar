@@ -7,6 +7,41 @@ import { pixCode, pixAmount, pixKey } from "./pix.js";
 import { sendDiscord } from "./discord.js";
 
 const app = express();
+
+function stripeConf(): { key: string; wh: string; links: Record<string, string> } {
+  return {
+    key: process.env.STRIPE_SECRET_KEY || "",
+    wh: process.env.STRIPE_WEBHOOK_SECRET || "",
+    links: {
+      "starter/monthly": process.env.STRIPE_LINK_STARTER || "",
+      "pro/monthly": process.env.STRIPE_LINK_PRO || "",
+      "pro/annual": process.env.STRIPE_LINK_ANNUAL || ""
+    }
+  };
+}
+
+app.post("/api/billing/stripe", express.raw({ type: "application/json" }), async (req: any, res: any) => {
+  try {
+    const conf = stripeConf();
+    if (!conf.key || !conf.wh) return res.status(500).json({ error: "stripe não configurado" });
+    const { default: Stripe } = await import("stripe");
+    const stripe = new Stripe(conf.key);
+    const sig = String(req.headers["stripe-signature"] || "");
+    const event = stripe.webhooks.constructEvent(req.body, sig, conf.wh);
+    if (event.type === "checkout.session.completed") {
+      const s: any = event.data.object;
+      const ref = String(s.client_reference_id || "");
+      const [uid, plan, period] = ref.split(":");
+      if (uid && (plan === "starter" || plan === "pro")) {
+        storage.setPlan(storage.userEmail(uid), plan, period === "annual" ? 12 : 1);
+      }
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : "webhook inválido" });
+  }
+});
+
 app.use(express.json());
 app.use((_req: any, res: any, next: any) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -176,6 +211,17 @@ app.post("/api/billing/paid", (req, res) => {
   const { plan, period } = planPeriod(req);
   storage.markPaid(uid, plan, period);
   res.json({ ok: true, status: "pagamento em conferência — liberamos o Pro em até 1 dia útil" });
+});
+
+app.get("/api/billing/card", (req, res) => {
+  const uid = uidOf(req);
+  if (!uid) return res.status(401).json({ error: "não logado" });
+  const conf = stripeConf();
+  const { plan, period } = planPeriod(req);
+  const base = conf.links[`${plan}/${period}`];
+  if (!conf.key || !base) return res.json({ configured: false });
+  const sep = base.includes("?") ? "&" : "?";
+  res.json({ configured: true, url: `${base}${sep}client_reference_id=${encodeURIComponent(`${uid}:${plan}:${period}`)}` });
 });
 
 app.post("/api/billing/activate", (req, res) => {
@@ -508,9 +554,9 @@ app.get("/", (req: any, res: any) => {
   <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table>
   <div class="sectionhead rv" id="conta"><h2>Conta e cobrança</h2><span id="planline">plano e trial</span></div>
   <div class="steps" id="plans">
-    <div class="step"><b class="num">S</b><p><b>Starter · R$ 49/mês</b><br/><span style="color:#8f98a0">Até 10 jogos · alertas no Discord · ideal para solo.</span></p><button class="btn ghost small" onclick="showPix('starter','monthly',this)">ASSINAR STARTER</button></div>
-    <div class="step" style="border-color:var(--neon)"><b class="num">P</b><p><b>Pro · R$ 99/mês</b><br/><span style="color:#8f98a0">Até 30 jogos · tudo do Starter · para publishers.</span></p><button class="btn primary small" onclick="showPix('pro','monthly',this)">ASSINAR PRO</button></div>
-    <div class="step"><b class="num">12</b><p><b>Anual · R$ 990/ano</b><br/><span style="color:#8f98a0">Pro por 12 meses · 2 meses grátis.</span></p><button class="btn ghost small" onclick="showPix('pro','annual',this)">ASSINAR ANUAL</button></div>
+    <div class="step"><b class="num">S</b><p><b>Starter · R$ 49/mês</b><br/><span style="color:#8f98a0">Até 10 jogos · alertas no Discord · ideal para solo.</span></p><button class="btn ghost small" onclick="showPix('starter','monthly',this)">PIX R$ 49</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('starter','monthly',this)">CARTÃO</button></div>
+    <div class="step" style="border-color:var(--neon)"><b class="num">P</b><p><b>Pro · R$ 99/mês</b><br/><span style="color:#8f98a0">Até 30 jogos · tudo do Starter · para publishers.</span></p><button class="btn primary small" onclick="showPix('pro','monthly',this)">PIX R$ 99</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('pro','monthly',this)">CARTÃO</button></div>
+    <div class="step"><b class="num">12</b><p><b>Anual · R$ 990/ano</b><br/><span style="color:#8f98a0">Pro por 12 meses · 2 meses grátis.</span></p><button class="btn ghost small" onclick="showPix('pro','annual',this)">PIX R$ 990</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('pro','annual',this)">CARTÃO</button></div>
   </div>
   <div class="toolbar">
     <button class="btn ghost" onclick="plan()">Ver meu plano</button>
@@ -585,6 +631,8 @@ app.get("/", (req: any, res: any) => {
   async function showPix(plan,period,el){curPlan=plan||'pro';curPeriod=period||'monthly';var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando código...';try{var r=await fetch('/api/billing/pix?plan='+curPlan+'&period='+curPeriod).then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · '+curPlan.toUpperCase()+' '+(curPeriod==='annual'?'anual (12 meses)':'mensal (30 dias)')+'.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
   function copyPix(){var ta=document.getElementById('pixcode');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}toast('Código Pix copiado.','ok');}
   async function markPaid(el){el.disabled=true;el.textContent='Enviando...';var r=await fetch('/api/billing/paid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:curPlan,period:curPeriod})}).then(x=>x.json());document.getElementById('pixstatus').textContent=r.status||'ok';el.textContent='JÁ PAGUEI';el.disabled=false;plan();}
+  async function payCard(plan,period,el){if(el){el.textContent='Abrindo...';el.disabled=true;}try{var r=await fetch('/api/billing/card?plan='+plan+'&period='+period).then(x=>x.json());if(!r.configured){toast('Cartão em ativação — use o Pix por enquanto.','warn');if(el){el.textContent='CARTÃO';el.disabled=false;}return;}location.href=r.url;}catch(e){toast('Falha de rede. Tente de novo.','err');if(el){el.textContent='CARTÃO';el.disabled=false;}}}
+  (function(){fetch('/api/billing/card?plan=pro&period=monthly').then(function(x){return x.json()}).then(function(r){if(r.configured){document.querySelectorAll('.cardbtn').forEach(function(b){b.style.display='';});}}).catch(function(){});})();
   async function saveKey(){const v=document.getElementById('swkey').value.trim();const r=await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});if(await needLogin(r))return;toast('Key salva. Use Testar wishlist real.','ok');}
   async function checkWish(){const g=await fetch('/api/games').then(x=>x.json());const appId=(g[0]&&g[0].appId)||'557040';const r=await fetch('/api/wishlist/'+appId).then(x=>x.json());toast(r.configured===false?'Sem key: usando reviews como proxy.':JSON.stringify(r).slice(0,300),r.configured===false?'warn':'ok');}
   async function showAudit(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Analisando página...';if(el)el.disabled=true;try{const r=await fetch('/api/audit/'+appId).then(x=>x.json());
