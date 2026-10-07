@@ -42,6 +42,11 @@ export interface UserData {
   steamworksKey: string;
   digest: boolean;
   lastDigest: string | null;
+  share: string | null;
+}
+
+function blankData(): UserData {
+  return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "", digest: true, lastDigest: null, share: null };
 }
 
 interface DB {
@@ -54,10 +59,6 @@ interface DB {
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dir = process.env.DATA_DIR || root;
 const file = join(dir, "data.json");
-
-function blankData(): UserData {
-  return { games: [], history: [], alerts: [], webhook: "", steamworksKey: "", digest: true, lastDigest: null };
-}
 
 const SESSION_DAYS = Number(process.env.SESSION_DAYS || 30);
 const sessionAlive = (iso: string): boolean =>
@@ -112,7 +113,8 @@ function load(): DB {
       webhook: raw.config?.webhook ?? "",
       steamworksKey: "",
       digest: true,
-      lastDigest: null
+      lastDigest: null,
+      share: null
     };
     return migrated;
   } catch {
@@ -392,6 +394,24 @@ export const storage = {
     const db = load();
     ud(db, userId).digest = on;
     save(db);
+  },
+  shareToken(userId: string): string | null {
+    return load().data[userId]?.share ?? null;
+  },
+  toggleShare(userId: string): string | null {
+    const db = load();
+    const d = ud(db, userId);
+    if (d.share == null) d.share = null;
+    d.share = d.share ? null : newToken();
+    save(db);
+    return d.share;
+  },
+  ownerOfShare(token: string): string | null {
+    const db = load();
+    for (const [uid, d] of Object.entries(db.data)) {
+      if (d.share === token) return uid;
+    }
+    return null;
   },
   dueDigest(userId: string): boolean {
     const d = load().data[userId];

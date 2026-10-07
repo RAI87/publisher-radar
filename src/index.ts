@@ -415,6 +415,7 @@ function needAuth(req: any, res: any, next: any): void {
   const open = ["/landing", "/login", "/api/auth/register", "/api/auth/login", "/api/billing/activate"];
   if (open.includes(req.path)) return next();
   if (req.path.startsWith("/api/internal/")) return next();
+  if (req.path.startsWith("/r/")) return next();
   if (req.path === "/" && !uidOf(req)) return res.redirect("/login");
   if (req.path.startsWith("/api/") && !uidOf(req)) {
     if (req.method === "GET" && (req.path === "/api/export.csv" || req.path === "/api/report.md") && String(req.headers?.accept || "").includes("text/html")) return res.redirect("/login");
@@ -744,6 +745,13 @@ app.get("/", (req: any, res: any) => {
   <div class="toolbar">
     <button class="btn ghost" onclick="window.open('/api/report.md','_blank')">Relatório semanal (Markdown)</button>
     <button class="btn ghost" onclick="csv()">Baixar CSV</button>
+    <button class="btn primary" onclick="shareLink(this)">LINK PÚBLICO P/ ENCAMINHAR</button>
+  </div>
+  <div id="sharebox" style="display:none" class="card"><div class="pad"><b>Link público do portfólio</b>
+  <p style="color:#8f98a0;font-size:12px">Quem receber vê jogos + alertas, sem login. Desligue quando quiser.</p>
+  <input id="shareurl" readonly style="width:100%" onclick="this.select()"/>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost small" onclick="copyShare()">Copiar link</button>
+  <button class="btn ghost small" onclick="shareLink(this)">Desligar</button></div></div></div>
     <input id="wh" placeholder="Webhook Discord https://discord.com/api/webhooks/..." style="min-width:300px;flex:1"/>
     <button class="btn" onclick="saveWh()">Salvar webhook</button>
     <button class="btn ghost" onclick="testWh()">Testar alerta</button>
@@ -790,6 +798,10 @@ app.get("/", (req: any, res: any) => {
   async function recheck(appId,el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/check/'+appId);if(await needLogin(r))return;if(!r.ok){const e=await r.json().catch(()=>({}));b.textContent='Recheck';b.disabled=false;toast('Falha: '+(e.error||r.status),'err');return;}}catch(e){b.textContent='Recheck';b.disabled=false;toast('Falha de rede. Tente de novo.','err');return;}toast('Coleta atualizada.','ok');setTimeout(function(){location.reload()},900);}
   async function runWorker(el){const b=el||event.target;b.textContent='Coletando...';b.disabled=true;try{const r=await fetch('/api/worker',{method:'POST'});if(await needLogin(r))return;const j=await r.json().catch(()=>null);toast(j&&j.result?j.result.join(String.fromCharCode(10)):'Coleta concluída','ok');setTimeout(function(){location.reload()},1800);}catch(e){toast('Falha de rede. Tente de novo.','err');b.textContent='Coletar agora';b.disabled=false;}}
   function csv(){window.location='/api/export.csv';}
+  async function shareLink(el){try{const r=await fetch('/api/share/toggle',{method:'POST'}).then(x=>x.json());if(r.error){toast(r.error,'err');return;}var box=document.getElementById('sharebox');
+    if(r.token){box.style.display='block';document.getElementById('shareurl').value=location.origin+r.url;box.scrollIntoView({behavior:'smooth'});toast('Link público ligado. Encaminhe no grupo.','ok');}
+    else{box.style.display='none';toast('Link público desligado.','warn');}}catch(e){toast('Falha de rede.','err');}}
+  function copyShare(){var i=document.getElementById('shareurl');i.select();try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');}toast('Link copiado.','ok');}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
   async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){toast(r.error,'err');return;}
@@ -924,6 +936,27 @@ app.post("/api/games/seed", (req: any, res: any) => {
   const games = storage.listGames(uid);
   collectSoon(uid, games.map((g) => g.appId));
   res.json({ ok: true, games });
+});
+
+app.post("/api/share/toggle", (req: any, res: any) => {
+  const uid = U(req);
+  const token = storage.toggleShare(uid);
+  res.json({ ok: true, token, url: token ? `/r/${token}` : null });
+});
+
+app.get("/r/:token", (req, res) => {
+  const uid = storage.ownerOfShare(req.params.token);
+  if (!uid) return res.status(404).send("Relatório não encontrado ou desligado.");
+  const games = storage.listGames(uid);
+  const alerts = storage.listAlerts(uid).slice(0, 10);
+  const cards = games.map((g) => {
+    const s = storage.lastSnapshot(uid, g.appId);
+    const h = storage.historyFor(uid, g.appId, 8);
+    const vel = h.length > 1 ? ((h[h.length - 1].totalReviews - h[0].totalReviews) / Math.max(1, h.length - 1)).toFixed(1) : "0";
+    return `<div class="card"><img class="cover" src="${s?.capsule ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appId}/header.jpg`}" loading="lazy" alt="capa"/><div class="pad"><b>${g.label || s?.name || g.appId}</b><p style="font-size:20px;font-weight:800;margin:6px 0">${s?.priceBRL != null ? `R$ ${s.priceBRL.toFixed(2)}` : "A anunciar"}${s?.discountPct ? ` <span class="off">-${s.discountPct}%</span>` : ""}</p><span class="meta">${s?.totalReviews ?? 0} reviews · ${s?.positivePct ?? 0}% aprovação · +${vel}/dia</span><div class="bar"><i style="width:${s?.positivePct ?? 0}%"></i></div><p style="margin-top:10px"><a href="https://store.steampowered.com/app/${g.appId}" target="_blank" rel="noopener">Abrir na Steam</a></p></div></div>`;
+  }).join("");
+  const items = alerts.map((a) => `<div class="alert ok"><span>${a.text}<br/><small style="color:#8f98a0">${new Date(a.at).toLocaleDateString("pt-BR")}</small></span></div>`).join("") || "<p style=color:#8f98a0>Sem alertas recentes.</p>";
+  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório de portfólio — Publisher Radar 87</title><style>${css}</style>${pxHead}</head><body>${pxBody}<div class="wrap"><div class="nav"><img src="/logo.png" alt="Publisher Radar 87" style="width:32px;height:32px;object-fit:cover;image-rendering:pixelated;border:3px solid #33415e;box-shadow:3px 3px 0 #000"/><span class="px-title">RELATÓRIO DE PORTFÓLIO</span></div><p style="color:#8f98a0">${games.length} jogos · dados da Steam · gerado em ${new Date().toLocaleString("pt-BR")}</p><div class="grid">${cards || "<p>Nenhum jogo.</p>"}</div><h2>Alertas recentes</h2>${items}<div class="footer"><span>Gerado pelo Publisher Radar 87 · <a href="/landing">Conheça</a></span></div></div>${pxScript}</body></html>`);
 });
 
 app.get("/api/config", (req: any, res: any) => {
