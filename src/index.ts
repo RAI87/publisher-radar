@@ -2,7 +2,7 @@ import express from "express";
 import { readFileSync, writeFileSync } from "node:fs";
 import { storage } from "./storage.js";
 import { parseCookies, newToken } from "./auth.js";
-import { fetchSnapshot, fetchRecentReviews, scoreForecast, draftReply, parseAppId } from "./steam.js";
+import { fetchSnapshot, fetchRecentReviews, scoreForecast, draftReply, parseAppId, extractAppIds } from "./steam.js";
 import { diffSnapshots } from "./alerting.js";
 import { pixCode, pixAmount, pixKey } from "./pix.js";
 import { join, dirname } from "node:path";
@@ -812,7 +812,7 @@ app.get("/", (req: any, res: any) => {
     if(j.ok&&!j.simulated){toast('Alerta de teste enviado ao Discord.','ok');}
     else if(j.ok){toast('Sem webhook salvo: registrado apenas no log do servidor.','warn');}
     else{toast('Falha: '+(j.error||'verifique o webhook'),'err');}}catch(e){toast('Sem resposta do servidor — aguarde 1 min e tente de novo.','err');}}
-  async function bulk(){const t=document.getElementById('bulk').value;if(!t){toast('Cole ao menos um AppID ou URL','warn');return;}const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});if(await needLogin(r))return;const j=await r.json().catch(()=>({added:0}));toast(j.added+' jogo(s) adicionado(s). Coletando dados...','ok');setTimeout(function(){location.reload()},1400);}
+  async function bulk(){const t=document.getElementById('bulk').value;if(!t){toast('Cole ao menos um AppID ou URL','warn');return;}const r=await fetch('/api/games/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});if(await needLogin(r))return;const j=await r.json().catch(()=>({added:0}));toast(j.added+' jogo(s) adicionado(s).'+(j.skipped&&j.skipped.length?' Ignorados (não são jogos): '+j.skipped.join(', '):''),'ok');setTimeout(function(){location.reload()},1400);}
   function cd(id,iso){const el=document.getElementById(id);if(!el)return;const d=Math.ceil((new Date(iso)-Date.now())/86400000);el.textContent=d>0?('faltam '+d+' dias'):(d===0?'começa hoje':'em andamento ou encerrado');}
   document.querySelectorAll('.kpi b').forEach(function(b){var m=b.textContent.match(/^([\d.]+)/);if(!m)return;var target=parseInt(m[1].replace(/\./g,''),10);if(!target||target<20)return;var t0=performance.now();function fr(t){var p=Math.min(1,(t-t0)/900);var v=Math.round(target*(1-Math.pow(1-p,3)));b.childNodes[0].nodeValue=v.toLocaleString('pt-BR');if(p<1)requestAnimationFrame(fr);}requestAnimationFrame(fr);});
   cd('cd1','2026-10-19T10:00:00-03:00');cd('cd2','2027-02-13T10:00:00-03:00');showline();
@@ -889,7 +889,8 @@ app.post("/api/games", (req: any, res: any) => {
 
 app.post("/api/games/bulk", (req, res) => {
   const text: string = String(req.body?.text ?? "");
-  const ids = [...new Set([...text.matchAll(/(\d{3,10})/g)].map((m) => m[1]))].slice(0, 30);
+  const ids = extractAppIds(text);
+  const skipped = [...new Set([...text.matchAll(/(\d{3,10})/g)].map((m) => m[1]))].filter((id) => !ids.includes(id));
   const added = [];
   for (const id of ids) {
     try {
@@ -897,7 +898,7 @@ app.post("/api/games/bulk", (req, res) => {
     } catch {}
   }
   collectSoon(U(req), added.map((g: any) => g.appId));
-  res.json({ added: added.length, ids });
+  res.json({ added: added.length, ids, skipped });
 });
 
 app.post("/api/games/seed", (req: any, res: any) => {

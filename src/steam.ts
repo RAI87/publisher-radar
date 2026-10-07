@@ -141,6 +141,18 @@ export function draftReply(game: string, review: RecentReview): { pt: string; en
 }
 
 export function parseAppId(input: string): string | null {
-  const m = String(input).match(/\/app\/(\d+)/) ?? String(input).match(/^(\d{3,10})$/);
+  const clean = String(input).split("?")[0];
+  const m = clean.match(/\/app\/(\d+)/) ?? clean.trim().match(/^(\d{3,10})$/);
   return m ? m[1] : null;
+}
+
+export function extractAppIds(text: string): string[] {
+  const out: string[] = [];
+  for (const token of String(text).split(/[\s,;]+/)) {
+    if (!token) continue;
+    const id = parseAppId(token);
+    if (id && !out.includes(id)) out.push(id);
+    if (out.length >= 30) break;
+  }
+  return out;
 }
