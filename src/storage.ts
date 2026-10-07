@@ -24,8 +24,11 @@ export interface User {
   email: string;
   passHash: string;
   salt: string;
-  plan: "trial" | "pro";
+  plan: "trial" | "starter" | "pro";
   pendingPro: boolean;
+  wantPlan: string;
+  wantPeriod: string;
+  proUntil: string | null;
   trialEnds: string;
   createdAt: string;
 }
@@ -80,6 +83,9 @@ function load(): DB {
       salt: "",
       plan: "trial",
       pendingPro: false,
+      wantPlan: "pro",
+      wantPeriod: "monthly",
+      proUntil: null,
       trialEnds: new Date(Date.now() + 7 * 86400000).toISOString(),
       createdAt: new Date().toISOString()
     });
@@ -127,6 +133,9 @@ export const storage = {
       salt,
       plan: "trial",
       pendingPro: false,
+      wantPlan: "pro",
+      wantPeriod: "monthly",
+      proUntil: null,
       trialEnds: new Date(Date.now() + 7 * 86400000).toISOString(),
       createdAt: new Date().toISOString()
     };
@@ -168,7 +177,10 @@ export const storage = {
     const u = db.users.find((x) => x.id === s.userId);
     if (!u) return null;
     if (u.pendingPro === undefined) u.pendingPro = false;
-    return { ...u, trialLeft: u.plan === "pro" ? -1 : trialLeft(u) };
+    if (!u.wantPlan) u.wantPlan = "pro";
+    if (!u.wantPeriod) u.wantPeriod = "monthly";
+    if (u.proUntil === undefined) u.proUntil = null;
+    return { ...u, trialLeft: u.plan === "trial" ? trialLeft(u) : -1 };
   },
   allUserIds(): string[] {
     return load().users.map((u) => u.id);
@@ -179,7 +191,11 @@ export const storage = {
   trialOk(userId: string): boolean {
     const u = load().users.find((x) => x.id === userId);
     if (!u) return false;
-    return u.plan === "pro" || trialLeft(u) > 0;
+    if (u.plan !== "trial") {
+      if (!u.proUntil) return true;
+      return new Date(u.proUntil).getTime() > Date.now();
+    }
+    return trialLeft(u) > 0;
   },
   stats(): { users: number; sessions: number; games: number; snapshots: number; alerts: number } {
     const db = load();
@@ -192,25 +208,28 @@ export const storage = {
       alerts: ids.reduce((a, k) => a + (db.data[k]?.alerts.length ?? 0), 0)
     };
   },
-  setPlan(email: string, plan: "trial" | "pro"): boolean {
+  setPlan(email: string, plan: "trial" | "starter" | "pro", months = 1): boolean {
     const db = load();
     const u = db.users.find((x) => x.email === email.trim().toLowerCase());
     if (!u) return false;
     u.plan = plan;
     u.pendingPro = false;
+    u.proUntil = plan === "trial" ? null : new Date(Date.now() + months * 30 * 86400000).toISOString();
     save(db);
     return true;
   },
-  markPaid(userId: string): void {
+  markPaid(userId: string, plan = "pro", period = "monthly"): void {
     const db = load();
     const u = db.users.find((x) => x.id === userId);
     if (!u) return;
     u.pendingPro = true;
+    u.wantPlan = plan;
+    u.wantPeriod = period;
     save(db);
   },
-  pendingList(): { email: string; since: string }[] {
+  pendingList(): { email: string; want: string; since: string }[] {
     const db = load();
-    return db.users.filter((u) => u.pendingPro && u.plan !== "pro").map((u) => ({ email: u.email, since: u.createdAt }));
+    return db.users.filter((u) => u.pendingPro && u.plan === "trial").map((u) => ({ email: u.email, want: (u.wantPlan || "pro") + "/" + (u.wantPeriod || "monthly"), since: u.createdAt }));
   },
   listGames(userId: string): TrackedGame[] {
     return load().data[userId]?.games ?? [];
@@ -220,7 +239,9 @@ export const storage = {
     const d = ud(db, userId);
     const clean = appId.trim();
     if (!/^\d+$/.test(clean)) throw new Error("appId inválido, use só números");
-    if (d.games.length >= 30) throw new Error("limite de 30 jogos no plano piloto");
+    const me = db.users.find((x) => x.id === userId);
+    const limit = me?.plan === "starter" ? 10 : 30;
+    if (d.games.length >= limit) throw new Error(`limite de ${limit} jogos no seu plano — suba para o Pro`);
     const ex = d.games.find((g) => g.appId === clean);
     if (!ex) {
       d.games.push({ appId: clean, label, mine, addedAt: new Date().toISOString() });

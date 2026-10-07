@@ -17,13 +17,27 @@ export function pixKey(): string {
   return process.env.PIX_KEY || "5711321a-8781-4817-892d-17029e88ff1c";
 }
 
-export function pixAmount(): string {
-  return process.env.PIX_AMOUNT || "99.00";
+export type PlanId = "starter" | "pro";
+export type Period = "monthly" | "annual";
+
+export const PLANS: Record<PlanId, { monthly: string; annual: string; limit: number; label: string }> = {
+  starter: { monthly: "49.00", annual: "490.00", limit: 10, label: "Starter" },
+  pro: { monthly: "99.00", annual: "990.00", limit: 30, label: "Pro" }
+};
+
+export function planLimit(plan: string): number {
+  if (plan === "starter") return PLANS.starter.limit;
+  return PLANS.pro.limit;
 }
 
-export function pixCode(): { code: string; key: string; amount: string; name: string } {
+export function pixAmount(plan: PlanId = "pro", period: Period = "monthly"): string {
+  if (process.env.PIX_AMOUNT) return process.env.PIX_AMOUNT;
+  return PLANS[plan][period];
+}
+
+export function pixCode(plan: PlanId = "pro", period: Period = "monthly"): { code: string; key: string; amount: string; name: string } {
   const key = pixKey();
-  const amount = pixAmount();
+  const amount = pixAmount(plan, period);
   const name = (process.env.PIX_NAME || "PUBLISHER RADAR").slice(0, 25).toUpperCase();
   const city = (process.env.PIX_CITY || "SAO PAULO").slice(0, 15).toUpperCase();
   const gui = tlv("00", "br.gov.bcb.pix") + tlv("01", key);

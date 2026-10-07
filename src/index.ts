@@ -145,37 +145,49 @@ app.get("/api/billing", (req, res) => {
   if (!uid) return res.status(401).json({ error: "não logado" });
   const token = parseCookies(req.headers?.cookie)[COOKIE];
   const me = storage.me(token!)!;
-  res.json({ plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true, price: "R$ 99/mês" });
+  const limit = me.plan === "starter" ? 10 : 30;
+  res.json({ plan: me.plan, trialLeft: me.trialLeft, pendingPro: me.pendingPro === true, limit, proUntil: me.proUntil ?? null, want: (me.wantPlan || "pro") + "/" + (me.wantPeriod || "monthly") });
 });
+
+function planPeriod(req: any): { plan: "starter" | "pro"; period: "monthly" | "annual" } {
+  const plan = req.body?.plan === "starter" || req.query?.plan === "starter" ? "starter" : "pro";
+  const period = req.body?.period === "annual" || req.query?.period === "annual" ? "annual" : "monthly";
+  return { plan, period };
+}
 
 app.post("/api/billing/checkout", (req, res) => {
   const uid = uidOf(req);
   if (!uid) return res.status(401).json({ error: "não logado" });
-  res.json({ ok: true, amount: pixAmount(), pixKey: pixKey(), pixCode: pixCode().code, next: "Pague no app do banco (Pix copia e cola) e clique em JA PAGUEI." });
+  const { plan, period } = planPeriod(req);
+  res.json({ ok: true, plan, period, amount: pixAmount(plan, period), pixKey: pixKey(), pixCode: pixCode(plan, period).code, next: "Pague no app do banco (Pix copia e cola) e clique em JÁ PAGUEI." });
 });
 
 app.get("/api/billing/pix", (req, res) => {
   const uid = uidOf(req);
   if (!uid) return res.status(401).json({ error: "não logado" });
-  const p = pixCode();
-  res.json({ amount: pixAmount(), code: p.code, name: p.name });
+  const { plan, period } = planPeriod(req);
+  const p = pixCode(plan, period);
+  res.json({ plan, period, amount: pixAmount(plan, period), code: p.code, name: p.name });
 });
 
 app.post("/api/billing/paid", (req, res) => {
   const uid = uidOf(req);
   if (!uid) return res.status(401).json({ error: "não logado" });
-  storage.markPaid(uid);
-  res.json({ ok: true, status: "pagamento em conferência — liberamos o Pro em até 1 dia util" });
+  const { plan, period } = planPeriod(req);
+  storage.markPaid(uid, plan, period);
+  res.json({ ok: true, status: "pagamento em conferência — liberamos o Pro em até 1 dia útil" });
 });
 
 app.post("/api/billing/activate", (req, res) => {
-  if ((req.body?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey invalida" });
-  const ok = storage.setPlan(String(req.body?.email ?? ""), "pro");
+  if ((req.body?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey inválida" });
+  const plan = req.body?.plan === "starter" ? "starter" : "pro";
+  const months = req.body?.period === "annual" ? 12 : 1;
+  const ok = storage.setPlan(String(req.body?.email ?? ""), plan, months);
   res.json({ ok });
 });
 
 app.get("/api/billing/pending", (req, res) => {
-  if (String(req.query?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey invalida" });
+  if (String(req.query?.adminKey ?? "") !== (process.env.ADMIN_KEY || "piloto123")) return res.status(403).json({ error: "adminKey inválida" });
   res.json(storage.pendingList());
 });
 
@@ -494,7 +506,12 @@ app.get("/", (req: any, res: any) => {
   <tr><td><b>Steam Next Fest · Out 2026</b></td><td>19–26 out 2026</td><td id="cd1">—</td><td>Auditoria da página + velocity diaria da demo</td></tr>
   <tr><td><b>Made in Brazil Sale</b></td><td>13–17 fev (anual)</td><td id="cd2">—</td><td>Relatório por publisher + comparativo de desconto</td></tr>
   <tr><td><b>Steam Winter Sale</b></td><td>dezembro</td><td>—</td><td>Alerta de promo do concorrente na hora</td></tr></table>
-  <div class="sectionhead rv" id="conta"><h2>Conta e cobranca</h2><span id="planline">plano e trial</span></div>
+  <div class="sectionhead rv" id="conta"><h2>Conta e cobrança</h2><span id="planline">plano e trial</span></div>
+  <div class="steps" id="plans">
+    <div class="step"><b class="num">S</b><p><b>Starter · R$ 49/mês</b><br/><span style="color:#8f98a0">Até 10 jogos · alertas no Discord · ideal para solo.</span></p><button class="btn ghost small" onclick="showPix('starter','monthly',this)">ASSINAR STARTER</button></div>
+    <div class="step" style="border-color:var(--neon)"><b class="num">P</b><p><b>Pro · R$ 99/mês</b><br/><span style="color:#8f98a0">Até 30 jogos · tudo do Starter · para publishers.</span></p><button class="btn primary small" onclick="showPix('pro','monthly',this)">ASSINAR PRO</button></div>
+    <div class="step"><b class="num">12</b><p><b>Anual · R$ 990/ano</b><br/><span style="color:#8f98a0">Pro por 12 meses · 2 meses grátis.</span></p><button class="btn ghost small" onclick="showPix('pro','annual',this)">ASSINAR ANUAL</button></div>
+  </div>
   <div class="toolbar">
     <button class="btn ghost" onclick="plan()">Ver meu plano</button>
     <button class="btn primary" onclick="showPix(this)">ATIVAR PRO · R$ 99 Pix</button>
@@ -513,7 +530,7 @@ app.get("/", (req: any, res: any) => {
     <div><p style="color:#8f98a0;font-size:12px;margin:0 0 6px">PASSO 1 — COPIE O CODIGO NO APP DO BANCO (OU LEIA O QR)</p>
     <textarea id="pixcode" rows="4" readonly style="width:100%;background:#05080f;color:#d9f99d;border:3px solid #2a3a55;font-size:11px"></textarea>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost small" onclick="copyPix()">Copiar código</button>
-    <button class="btn primary small" onclick="markPaid(this)">JA PAGUEI · R$ 99</button></div>
+    <button class="btn primary small" onclick="markPaid(this)">JÁ PAGUEI</button></div>
     <p id="pixstatus" style="font-size:12px"></p></div>
   </div></div></div>
   <div class="sectionhead rv"><h2>Relatório e integracao</h2><span>o que o publisher encaminha no Slack</span></div>
@@ -562,11 +579,12 @@ app.get("/", (req: any, res: any) => {
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
-  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){toast(r.error,'err');return;}const el=document.getElementById('planline');var t='Plano '+r.plan.toUpperCase()+' · '+(r.plan==='pro'?'ativo':('trial: '+r.trialLeft+' dias restantes'))+' · R$ 99/mês';if(r.pendingPro)t+=' · PAGAMENTO EM CONFERÊNCIA';if(el)el.textContent=t;toast(t,'ok');}
+  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){toast(r.error,'err');return;}const el=document.getElementById('planline');var t='Plano '+String(r.plan).toUpperCase()+' ('+r.limit+' jogos) · '+(r.plan==='trial'?('trial: '+r.trialLeft+' dias restantes'):(r.proUntil?('válido até '+String(r.proUntil).slice(0,10)):'ativo'));if(r.pendingPro)t+=' · PAGAMENTO EM CONFERÊNCIA ('+r.want+')';if(el)el.textContent=t;toast(t,'ok');}
   async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());toast((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
-  async function showPix(el){var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando código...';try{var r=await fetch('/api/billing/pix').then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · vale por 30 dias de Pro.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
+  var curPlan='pro',curPeriod='monthly';
+  async function showPix(plan,period,el){curPlan=plan||'pro';curPeriod=period||'monthly';var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando código...';try{var r=await fetch('/api/billing/pix?plan='+curPlan+'&period='+curPeriod).then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · '+curPlan.toUpperCase()+' '+(curPeriod==='annual'?'anual (12 meses)':'mensal (30 dias)')+'.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
   function copyPix(){var ta=document.getElementById('pixcode');ta.select();try{navigator.clipboard.writeText(ta.value);}catch(e){document.execCommand('copy');}toast('Código Pix copiado.','ok');}
-  async function markPaid(el){el.disabled=true;el.textContent='Enviando...';var r=await fetch('/api/billing/paid',{method:'POST'}).then(x=>x.json());document.getElementById('pixstatus').textContent=r.status||'ok';el.textContent='JA PAGUEI';el.disabled=false;plan();}
+  async function markPaid(el){el.disabled=true;el.textContent='Enviando...';var r=await fetch('/api/billing/paid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:curPlan,period:curPeriod})}).then(x=>x.json());document.getElementById('pixstatus').textContent=r.status||'ok';el.textContent='JÁ PAGUEI';el.disabled=false;plan();}
   async function saveKey(){const v=document.getElementById('swkey').value.trim();const r=await fetch('/api/steamworks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:v})});if(await needLogin(r))return;toast('Key salva. Use Testar wishlist real.','ok');}
   async function checkWish(){const g=await fetch('/api/games').then(x=>x.json());const appId=(g[0]&&g[0].appId)||'557040';const r=await fetch('/api/wishlist/'+appId).then(x=>x.json());toast(r.configured===false?'Sem key: usando reviews como proxy.':JSON.stringify(r).slice(0,300),r.configured===false?'warn':'ok');}
   async function showAudit(appId,el){const box=document.getElementById('x-'+appId);box.textContent='Analisando página...';if(el)el.disabled=true;try{const r=await fetch('/api/audit/'+appId).then(x=>x.json());
