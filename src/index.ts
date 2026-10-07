@@ -108,7 +108,7 @@ app.get("/login", (req: any, res: any) => {
   <div style="text-align:center;margin-bottom:18px"><div class="logo" style="margin:0 auto 12px;width:52px;height:52px">${svg.radar}</div>
   <div class="px-title" style="font-size:17px">PUBLISHER RADAR 87<span class="cursor"></span></div>
   <div class="coin" style="margin-top:10px">— INSERT COIN · 1 PLAYER —</div></div>
-  <div class="card"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias gratis e 3 jogos demo. Sem cartão.</p>
+  <div class="card" style="border:3px solid #2a3a55;box-shadow:5px 5px 0 #000"><p class="cab"><b>Acesso ao painel</b></p><p style="color:#8f98a0;font-size:13px;margin:0 0 6px">Conta piloto com 7 dias grátis e 3 jogos demo. Sem cartão.</p>
   <div class="field"><label>EMAIL</label><input id="email" type="email" placeholder="publisher@studio.com" autocomplete="email"/></div>
   <div class="field"><label>SENHA · MIN 6</label><input id="pass" type="password" placeholder="••••••" autocomplete="current-password"/></div>
   <button class="btn primary" style="width:100%;justify-content:center" id="bIn" onclick="go('login',this)">ENTRAR NO PAINEL</button>
@@ -278,7 +278,7 @@ function needAuth(req: any, res: any, next: any): void {
 app.use(needAuth);
 
 const svg = {
-  radar: `<svg width="26" height="22" viewBox="0 0 13 9" shape-rendering="crispEdges"><rect width="13" height="9" fill="#0b1220"/><g fill="#4ade80"><rect x="1" y="1" width="3" height="1"/><rect x="1" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="1" y="4" width="3" height="1"/><rect x="1" y="5" width="1" height="1"/><rect x="3" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="1" y="7" width="3" height="1"/><rect x="6" y="1" width="5" height="1"/><rect x="10" y="2" width="1" height="1"/><rect x="9" y="3" width="1" height="1"/><rect x="8" y="4" width="1" height="4"/></g></svg>`,
+  radar: `<span class="logo87">87</span>`,
   bell: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>`,
   tag: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`,
   chart: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
@@ -340,6 +340,8 @@ a{color:var(--blue);text-decoration:none}
 .nav{display:flex;align-items:center;gap:12px;padding:18px 0}
 .logo{width:42px;height:42px;background:#0d1526;display:flex;align-items:center;justify-content:center;border:3px solid #33415e;box-shadow:4px 4px 0 #000;image-rendering:pixelated}
 .logo svg{image-rendering:pixelated}
+.logo87{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--neon);text-shadow:2px 2px 0 #000;letter-spacing:1px}
+.loginwrap .logo87{font-size:19px}
 .px-title{font-family:'Press Start 2P',monospace;font-size:15px;letter-spacing:.5px}
 .px-title .cursor{display:inline-block;width:9px;height:15px;background:var(--neon);vertical-align:-2px;animation:blink 1.1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
@@ -423,7 +425,10 @@ tbody tr:hover{background:#16203a}
 .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:20px 0}
 .step{background:var(--panel);border:3px solid var(--line);padding:18px;box-shadow:5px 5px 0 #000;transition:transform .18s}
 .step:hover{transform:translate(-2px,-2px)}
-.step b.num{display:inline-flex;width:30px;height:30px;background:var(--neon);color:#06130b;align-items:center;justify-content:center;font-size:13px;font-family:'Press Start 2P',monospace;font-size:10px;box-shadow:3px 3px 0 #000}
+.step b.num{display:inline-flex;width:30px;height:30px;background:var(--neon);color:#06130b;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:10px;box-shadow:3px 3px 0 #000}
+.step.hot{background:#0e1a12;border-color:var(--neon)}
+.step.hot span{color:#d9f99d !important}
+.step.hot b{color:#fff}
 .ticker{border-top:3px solid #1b2740;border-bottom:3px solid #1b2740;background:#0c1322;overflow:hidden;white-space:nowrap;position:relative;z-index:2}
 .ticker .track{display:inline-block;padding:10px 0;animation:marquee 30s linear infinite;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon);letter-spacing:1px}
 .ticker .track b{color:var(--amber)}
@@ -555,16 +560,17 @@ app.get("/", (req: any, res: any) => {
   <div class="sectionhead rv" id="conta"><h2>Conta e cobrança</h2><span id="planline">plano e trial</span></div>
   <div class="steps" id="plans">
     <div class="step"><b class="num">S</b><p><b>Starter · R$ 49/mês</b><br/><span style="color:#8f98a0">Até 10 jogos · alertas no Discord · ideal para solo.</span></p><button class="btn ghost small" onclick="showPix('starter','monthly',this)">PIX R$ 49</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('starter','monthly',this)">CARTÃO</button></div>
-    <div class="step" style="border-color:var(--neon)"><b class="num">P</b><p><b>Pro · R$ 99/mês</b><br/><span style="color:#8f98a0">Até 30 jogos · tudo do Starter · para publishers.</span></p><button class="btn primary small" onclick="showPix('pro','monthly',this)">PIX R$ 99</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('pro','monthly',this)">CARTÃO</button></div>
+    <div class="step hot"><b class="num">P</b><p><b>Pro · R$ 99/mês</b><br/><span>Até 30 jogos · tudo do Starter · para publishers.</span></p><button class="btn primary small" onclick="showPix('pro','monthly',this)">PIX R$ 99</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('pro','monthly',this)">CARTÃO</button></div>
     <div class="step"><b class="num">12</b><p><b>Anual · R$ 990/ano</b><br/><span style="color:#8f98a0">Pro por 12 meses · 2 meses grátis.</span></p><button class="btn ghost small" onclick="showPix('pro','annual',this)">PIX R$ 990</button> <button class="btn ghost small cardbtn" style="display:none" onclick="payCard('pro','annual',this)">CARTÃO</button></div>
   </div>
   <div class="toolbar">
     <button class="btn ghost" onclick="plan()">Ver meu plano</button>
-    <button class="btn primary" onclick="showPix(this)">ATIVAR PRO · R$ 99 Pix</button>
+    <button class="btn ghost" onclick="checkout()">Ativar Pro (Pix)</button>
     <input id="swkey" placeholder="Steamworks Web API Key (grupo financeiro, opcional)" style="min-width:300px;flex:1"/>
     <button class="btn ghost" onclick="saveKey()">Salvar key</button>
     <button class="btn ghost" onclick="checkWish()">Testar wishlist real</button>
   </div>
+  <div id="planbox" style="display:none" class="card"><div class="pad" id="planbody"></div></div>
   <div id="pixbox" style="display:none" class="card rv"><div class="pad">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
     <div><span class="pxnum">CHECKOUT</span><h3 style="margin:10px 0 2px">Pro · 30 dias · <span style="color:var(--neon)">R$ 99,00</span></h3>
@@ -625,7 +631,14 @@ app.get("/", (req: any, res: any) => {
   function csv(){window.location='/api/export.csv';}
   async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
   async function delme(){if(!confirm('Excluir sua conta e todos os dados?'))return;await fetch('/api/auth/me',{method:'DELETE'});location.href='/login';}
-  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){toast(r.error,'err');return;}const el=document.getElementById('planline');var t='Plano '+String(r.plan).toUpperCase()+' ('+r.limit+' jogos) · '+(r.plan==='trial'?('trial: '+r.trialLeft+' dias restantes'):(r.proUntil?('válido até '+String(r.proUntil).slice(0,10)):'ativo'));if(r.pendingPro)t+=' · PAGAMENTO EM CONFERÊNCIA ('+r.want+')';if(el)el.textContent=t;toast(t,'ok');}
+  async function plan(){const r=await fetch('/api/billing').then(x=>x.json());if(r.error){toast(r.error,'err');return;}
+    var name=r.plan==='trial'?'TRIAL':(r.plan==='starter'?'STARTER':'PRO');
+    var det=r.plan==='trial'?('restam '+r.trialLeft+' dias · limite '+r.limit+' jogos'):((r.proUntil?('válido até '+String(r.proUntil).slice(0,10)):'ativo')+' · limite '+r.limit+' jogos');
+    var st=r.pendingPro?'<span class="pill off">PAGAMENTO EM CONFERÊNCIA ('+r.want+')</span>':(r.plan==='trial'?'<span class="pill">TRIAL</span>':'<span class="pill mine">ATIVO</span>');
+    var el=document.getElementById('planline');if(el)el.textContent='Plano '+name+' · '+det;
+    var box=document.getElementById('planbox');box.style.display='block';
+    document.getElementById('planbody').innerHTML="<div style=\"display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap\"><div><b style=\"font-size:18px\">MEU PLANO · "+name+"</b><br/><span style=\"color:#c7d5e0\">"+det+"</span></div><div>"+st+"</div></div>"+(r.plan==="trial"?"<p style=\"color:#8f98a0;font-size:13px\">Suba de plano para manter a coleta após o trial.</p><div style=\"display:flex;gap:8px;flex-wrap:wrap\"><button class=\"btn ghost small\" onclick=\"showPix('starter','monthly',this)\">STARTER R$ 49</button><button class=\"btn primary small\" onclick=\"showPix('pro','monthly',this)\">PRO R$ 99</button><button class=\"btn ghost small\" onclick=\"showPix('pro','annual',this)\">ANUAL R$ 990</button></div>":"");
+    box.scrollIntoView({behavior:'smooth'});}
   async function checkout(){const r=await fetch('/api/billing/checkout',{method:'POST'}).then(x=>x.json());toast((r.next||'ok')+' Chave Pix: '+(r.pixKey||''));}
   var curPlan='pro',curPeriod='monthly';
   async function showPix(plan,period,el){curPlan=plan||'pro';curPeriod=period||'monthly';var box=document.getElementById('pixbox');box.style.display='block';box.scrollIntoView({behavior:'smooth'});var ta=document.getElementById('pixcode');ta.value='Gerando código...';try{var r=await fetch('/api/billing/pix?plan='+curPlan+'&period='+curPeriod).then(x=>x.json());if(r.error){ta.value=r.error;return;}ta.value=r.code;document.getElementById('pixqr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(r.code);var st=document.getElementById('pixstatus');st.textContent='R$ '+r.amount+' · '+r.name+' · '+curPlan.toUpperCase()+' '+(curPeriod==='annual'?'anual (12 meses)':'mensal (30 dias)')+'.';}catch(e){ta.value='Falha de rede. Tente de novo.';}}
